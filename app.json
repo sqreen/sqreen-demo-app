@@ -1,0 +1,7 @@
+{
+  "name": "Sqreen demo app",
+  "description": "Demo app to understand how sqreen can protect your business",
+  "repository": "https://github.com/sqreen/sqreen-demo-app",
+  "logo": "https://s3-eu-west-1.amazonaws.com/sqreen-assets/logos/sqreen-logo.png",
+  "keywords": ["node", "express", "sqreen", "vue"]
+}
