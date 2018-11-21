@@ -47,7 +47,7 @@ app.get("/api/posts/:id", optionalJWTAuth, (req, res) => {
   });
 });
 
-app.get("/Blog/Admin/", (req, res) => {
+app.get("/WWW/", (req, res) => {
   res.send(true);
 });
 app.get("/cankao/admin/", (req, res) => {
