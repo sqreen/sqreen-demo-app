@@ -80,5 +80,5 @@ app.get(["/", "/post/*", "/login"], function(request, response) {
 });
 
 app.listen(process.env.PORT || 8000, () =>
-  console.log("Server running on http://localhost:8000/")
+  console.log(`Server runnning on port ${process.env.PORT || '8000'}`)
 );
