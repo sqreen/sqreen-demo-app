@@ -7,7 +7,7 @@ const db = new sqlite3.Database(Path.join(__dirname, "./sqreen-shop-db"));
 console.log("initializing db...");
 const init = Fs.readFileSync(Path.join(__dirname, "./database.sql"), "utf-8");
 
-const fakePosts = new Array(10000)
+const fakePosts = new Array(1000)
   .fill()
   .map(() => {
     return {
