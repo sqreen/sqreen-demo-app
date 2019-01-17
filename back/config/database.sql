@@ -12,4 +12,4 @@ CREATE TABLE POSTS (
 );
 
 INSERT INTO USERS (USERNAME, PASSWORD, EMAIL)
-VALUES ('foo', '12121212', 'foo@bar.baz');
+VALUES ('foo', '19841984', 'foo@bar.baz');
