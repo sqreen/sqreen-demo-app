@@ -6631,9 +6631,9 @@ sqlite3@^4.0.3:
     node-pre-gyp "^0.10.3"
     request "^2.87.0"
 
-sqreen@^1.29.0:
-  version "1.29.0"
-  resolved "https://registry.yarnpkg.com/sqreen/-/sqreen-1.29.0.tgz#6899e476eef82443fa79827929e80f3d6bb8cf9e"
+sqreen@*:
+  version "1.29.5"
+  resolved "https://registry.yarnpkg.com/sqreen/-/sqreen-1.29.5.tgz#0be1b2f5a3d5382ed1494c590d63b8b74b95c786"
   dependencies:
     cls-bluebird "^2.0.1"
     commander "^2.18.0"
