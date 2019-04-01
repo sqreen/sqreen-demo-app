@@ -14,7 +14,7 @@ const jwt = require("jsonwebtoken");
 app.use(morgan("combined"));
 app.use(
   cors({
-    allowedHeaders: ["*"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["*"]
   })
 );
@@ -80,5 +80,5 @@ app.get(["/", "/post/*", "/login"], function(request, response) {
 });
 
 app.listen(process.env.PORT || 8000, () =>
-  console.log(`Server runnning on port ${process.env.PORT || '8000'}`)
+  console.log(`Server runnning on port ${process.env.PORT || "8000"}`)
 );
