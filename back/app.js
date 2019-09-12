@@ -61,7 +61,7 @@ app.get("/api/posts/:id", optionalJWTAuth, (req, res, next) => {
     const price = Number(product.PRICE);
       getPriceUSD(price, (e, usd) => {
         if (e) return next(e);
-        product.PRICE_USD = usd;
+        product.PRICE_USD = usd.toFixed(2);
         return res.send(rows);
     });
   });
