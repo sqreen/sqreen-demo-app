@@ -4,7 +4,7 @@
 
 <template>
     <div class="content">
-        <h1 v-if="noTitleLink">{{postTitle}} - {{price}} EUR - {{priceUSD}} USD</h1>
+        <h1 v-if="noTitleLink">{{postTitle}} - {{price}} € - {{priceUSD}} $</h1>
         <h1 v-else><router-link :to="`post/${postId}`" append>{{postTitle}}</router-link></h1>
         <p>{{postContent}}</p>
     </div>
