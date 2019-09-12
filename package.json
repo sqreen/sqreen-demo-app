@@ -24,7 +24,7 @@
     "passport-local": "^1.0.0",
     "path": "^0.12.7",
     "register-service-worker": "^1.0.0",
-    "sqlite3": "^4.0.3",
+    "sqlite3": "^4.1.0",
     "sqreen": "*",
     "vue": "^2.5.17",
     "vue-router": "^3.0.1",

@@ -23,27 +23,25 @@ app.use(bodyParser.json());
 app.use(passport.initialize());
 app.use(express.static(path.resolve(__dirname, "../dist")));
 
-app.get("/api/posts", optionalJWTAuth, (req, res) => {
-  const limit =
-    req.query.limit >= 0 && req.query.limit <= 50 ? req.query.limit : 50;
+app.get("/api/posts", optionalJWTAuth, (req, res, next) => {
+  const limit = req.query.limit >= 0 && req.query.limit <= 50 ? req.query.limit : 50;
   const skip = req.query.skip >= 0 && req.query.skip <= 20 ? req.query.skip : 0;
-  db.all(`SELECT * FROM POSTS LIMIT ${limit} OFFSET ${skip};`, function(
-    err,
-    row
-  ) {
-    res.send(row);
+  db.all(`SELECT * FROM POSTS LIMIT ${limit} OFFSET ${skip};`, (err, rows) => {
+    if (err) return next(err);
+    return res.send(rows);
   });
 });
 
-app.get("/api/posts/:id", optionalJWTAuth, (req, res) => {
-  db.all(`SELECT * FROM POSTS WHERE ID = ${req.params.id};`, function(
-    err,
-    row
-  ) {
-    sqreen.track("get-single-article", {
-      properties: { articleId: req.params.id }
-    });
-    res.send(row);
+app.get("/api/posts/:id", optionalJWTAuth, (req, res, next) => {
+  db.all(`SELECT * FROM POSTS WHERE ID = ${req.params.id};`, (err, rows) => {
+    if (err) return next(err);
+    try {
+        sqreen.track('get-single-article', { properties: { articleId: rows[0].ID } });
+        return res.send(rows);
+    }
+    catch (e) {
+        return next(e);
+    }
   });
 });
 
