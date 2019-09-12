@@ -35,13 +35,12 @@ app.get("/api/posts", optionalJWTAuth, (req, res, next) => {
 app.get("/api/posts/:id", optionalJWTAuth, (req, res, next) => {
   db.all(`SELECT * FROM POSTS WHERE ID = ${req.params.id};`, (err, rows) => {
     if (err) return next(err);
-    try {
-        sqreen.track('get-single-article', { properties: { articleId: rows[0].ID } });
-        return res.send(rows);
+    if (rows.length === 0) {
+        res.status(404);
+        return next(new Error(`Post ${req.params.id} not found`));
     }
-    catch (e) {
-        return next(e);
-    }
+    sqreen.track('get-single-article', { properties: { articleId: rows[0].ID } });
+    return res.send(rows);
   });
 });
 
