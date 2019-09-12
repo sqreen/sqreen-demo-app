@@ -9,6 +9,23 @@ var path = require("path");
 //Initiate our app
 const app = express();
 const jwt = require("jsonwebtoken");
+const request = require('request');
+const FIXER_KEY = process.env.FIXER_KEY;
+
+const getPriceUSD = function (price, callback) {
+
+    request(`http://data.fixer.io/api/latest?access_key=${FIXER_KEY}`, (err, res) => {
+        if (err) return callback(err);
+        try {
+            const prices = JSON.parse(res.body).rates;
+            const USD = prices.USD;
+            return callback(null, USD * price);
+        }
+        catch (e) {
+            return callback(e);
+        }
+    });
+};
 
 //Configure our app
 app.use(morgan("combined"));
@@ -40,7 +57,13 @@ app.get("/api/posts/:id", optionalJWTAuth, (req, res, next) => {
         return next(new Error(`Post ${req.params.id} not found`));
     }
     sqreen.track('get-single-article', { properties: { articleId: rows[0].ID } });
-    return res.send(rows);
+    const product = rows[0];
+    const price = Number(product.PRICE);
+      getPriceUSD(price, (e, usd) => {
+        if (e) return next(e);
+        product.PRICE_USD = usd;
+        return res.send(rows);
+    });
   });
 });
 
