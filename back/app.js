@@ -9,12 +9,10 @@ var path = require("path");
 //Initiate our app
 const app = express();
 const jwt = require("jsonwebtoken");
-const request = require('request');
-const FIXER_KEY = process.env.FIXER_KEY;
 
 const getPriceUSD = function (price, callback) {
 
-    request(`http://data.fixer.io/api/latest?access_key=${FIXER_KEY}`, (err, res) => {
+    request(`https://api.exchangeratesapi.io/latest`, (err, res) => {
         if (err) return callback(err);
         try {
             const prices = JSON.parse(res.body).rates;
