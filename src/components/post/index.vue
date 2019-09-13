@@ -256,9 +256,9 @@ export default {
     price: function() {
       return this.post.price || this.post.PRICE;
     },
-      priceUSD: function() {
-          return this.post.priceUSD || this.post.PRICE_USD;
-      },
+    priceUSD: function() {
+      return this.post.priceUSD || this.post.PRICE_USD;
+    },
     postTitle: function() {
       return this.post.title || this.post.TITLE;
     },
