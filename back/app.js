@@ -98,6 +98,12 @@ app.get(["/", "/post/*", "/login"], function(request, response) {
   response.sendFile(path.resolve(__dirname, "../dist/index.html"));
 });
 
+app.use((err, req, res, next) => {
+
+    console.log(err);
+    res.end(err.message);
+});
+
 app.listen(process.env.PORT || 8000, () =>
   console.log(`Server runnning on port ${process.env.PORT || "8000"}`)
 );

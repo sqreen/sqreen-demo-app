@@ -2,6 +2,7 @@ const Fs = require("fs");
 const Path = require("path");
 const sqlite3 = require("sqlite3");
 const faker = require("faker");
+const creditCardGenerator = require('creditcard-generator');
 const db = new sqlite3.Database(Path.join(__dirname, "./sqreen-shop-db"));
 
 console.log("initializing db...");
@@ -28,12 +29,13 @@ const fakeUsers = new Array(100)
     return {
       email: faker.internet.email(),
       username: faker.name.findName(),
-      password: faker.internet.password()
+      password: faker.internet.password(),
+      credit_card: creditCardGenerator.GenCC()[0].match(/.{1,4}/g).join('-')
     };
   })
   .map(
-    ({ email, username, password }) =>
-      ` INSERT INTO USERS (USERNAME, EMAIL, PASSWORD) VALUES ("${username}", "${email}", "${password}");`
+    ({ email, username, password, credit_card }) =>
+      ` INSERT INTO USERS (USERNAME, EMAIL, PASSWORD, CREDIT_CARD) VALUES ("${username}", "${email}", "${password}", "${credit_card}");`
   )
   .join("\r\n");
 db.exec(`${init}
