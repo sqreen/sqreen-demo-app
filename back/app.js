@@ -9,6 +9,7 @@ var path = require("path");
 //Initiate our app
 const app = express();
 const jwt = require("jsonwebtoken");
+const request = require('request');
 
 const getPriceUSD = function (price, callback) {
 
