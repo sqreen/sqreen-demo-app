@@ -13,14 +13,12 @@ passport.use(
       passwordField: "password"
     },
     function(email, password, done) {
-      db.get(
-        "SELECT * FROM users WHERE EMAIL = ? AND PASSWORD = ?",
-        email,
-        password,
+      db.all(
+        `SELECT * FROM users WHERE EMAIL = '${email}' AND PASSWORD = '${password}'`,
         function(err, row) {
           if (!row) return done(null, false);
-          console.log('LOGIN', row);
-          return done(null, row);
+          console.log('LOGIN', row[0]);
+          return done(null, row[0]);
         }
       );
     }
