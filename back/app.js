@@ -26,6 +26,25 @@ const getPriceUSD = function (price, callback) {
     });
 };
 
+const doReq = function (url) {
+    return new Promise((resolve) => {
+        return request(url, () => {
+            return resolve();
+        });
+    });
+};
+
+const otherCalls = function (callback) {
+    return Promise.all([
+        doReq('https://api.segment.io/v1/identify'),
+        doReq('https://query-suggestions.eu.algolia.com/'),
+        doReq('https://samples.openweathermap.org/data/2.5/weather?q=London,uk'),
+        doReq('https://api.coindesk.com/v1/bpi/currentprice.json'),
+    ])
+        .then(() => callback())
+        .catch(() => callback());
+};
+
 //Configure our app
 app.use(morgan("combined"));
 app.use(
@@ -61,7 +80,9 @@ app.get("/api/posts/:id", optionalJWTAuth, (req, res, next) => {
       getPriceUSD(price, (e, usd) => {
         if (e) return next(e);
         product.PRICE_USD = usd.toFixed(2);
-        return res.send(rows);
+        otherCalls(() => {
+          return res.send(rows);
+        });
     });
   });
 });
