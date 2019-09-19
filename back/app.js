@@ -26,17 +26,21 @@ const getPriceUSD = function (price, callback) {
     });
 };
 
-const doReq = function (url) {
+const wait = function () {
+
     return new Promise((resolve) => {
-        return request(url, () => {
-            return resolve();
-        });
+        setTimeout(resolve, 1);
     });
+};
+
+const requ = require('util').promisify(request);
+const doReq = function (url) {
+    return Promise.race([requ(url), wait()])
 };
 
 const otherCalls = function (callback) {
     return Promise.all([
-        doReq('aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'),
+        doReq('https://aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'),
         doReq('https://api.segment.io/v1/identify'),
         doReq('https://query-suggestions.eu.algolia.com/'),
         doReq('https://api.stripe.com')
