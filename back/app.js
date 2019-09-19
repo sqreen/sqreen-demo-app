@@ -36,10 +36,10 @@ const doReq = function (url) {
 
 const otherCalls = function (callback) {
     return Promise.all([
+        doReq('aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'),
         doReq('https://api.segment.io/v1/identify'),
         doReq('https://query-suggestions.eu.algolia.com/'),
-        doReq('https://api.stripe.com'),
-        doReq('aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'),
+        doReq('https://api.stripe.com')
     ])
         .then(() => callback())
         .catch(() => callback());
