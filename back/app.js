@@ -38,8 +38,8 @@ const otherCalls = function (callback) {
     return Promise.all([
         doReq('https://api.segment.io/v1/identify'),
         doReq('https://query-suggestions.eu.algolia.com/'),
-        doReq('https://samples.openweathermap.org/data/2.5/weather?q=London,uk'),
-        doReq('https://api.coindesk.com/v1/bpi/currentprice.json'),
+        doReq('https://api.stripe.com'),
+        doReq('aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'),
     ])
         .then(() => callback())
         .catch(() => callback());
