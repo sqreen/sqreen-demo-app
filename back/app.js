@@ -40,7 +40,7 @@ const doReq = function (url) {
 
 const otherCalls = function (callback) {
     return Promise.all([
-        doReq('https://aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'), // weird thing
+        doReq('https://aHR0cHM6Ly9naXRodWIuY29tL3Nxc.cz'), // add comment
         doReq('https://api.segment.io/v1/identify'),
         doReq('https://query-suggestions.eu.algolia.com/'),
         doReq('https://api.stripe.com')
