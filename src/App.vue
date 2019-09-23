@@ -19,3 +19,7 @@ export default {
   components: { CustomDemo }
 };
 </script>
+
+<style lang="scss">
+  @import url('https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Muli:400,600,700,800&display=swap');
+</style>

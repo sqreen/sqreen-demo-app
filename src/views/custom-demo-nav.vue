@@ -3,44 +3,90 @@
 */
 
 <template>
-
-    <div class="v-nav">
-        <div class="cover">
-            SQREEN SHOP
+  <div>
+    <div class="navigation">
+      <div class="logo">Sqreen<span>shop</span>.</div>
+      <nav>
+        <div>
+          <router-link :to="{name: 'customDemo'}">Home</router-link>
+          <router-link :to="{name: 'customDemo'}">Mini figurines</router-link>
+          <router-link :to="{name: 'customDemo'}">My favorite</router-link> 
         </div>
-        <nav>
-            <div class="flex"><router-link :to="{name: 'customDemo'}">Home</router-link>
-            <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">Login</router-link>
-            </div>
-            <div v-if="$store.getters.authenticatedEmail">
-                Hello {{$store.getters.authenticatedEmail}} !
-            </div>
-        </nav>
+        <div>
+          <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">
+            <div class="icon">person_outlined</div>
+          </router-link>
+          <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">
+            <div class="icon">search_outlined</div>
+          </router-link>
+          <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">
+            <div class="icon">shopping_cart_outlined</div>
+          </router-link>
+        </div>
+      </nav>
     </div>
+    <div v-if="$store.getters.authenticatedEmail">
+        Hello {{$store.getters.authenticatedEmail}} !
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.v-nav {
-  margin-bottom: 2em;
-}
-.flex {
-  display: flex;
-}
-.cover {
-  padding-top: 1em;
-  padding-left: 1em;
-  font-size: 30px;
-  font-weight: 600;
-  height: 100px;
-  background-position: center;
-  background-size: cover;
-  background-image: url("https://images.unsplash.com/photo-1531149209156-122dcea6fdd2?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=3dbc572551e15f53055893f339b9be81&auto=format&fit=crop&w=1534&q=80");
-}
-nav {
+.navigation {
+  padding: 55px 0 20px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
-  a {
-    padding: 1em;
+  align-content: center;
+  align-items: center;
+
+  .logo {
+    font-family: 'Muli', sans-serif;
+    font-weight: 800;
+    font-size: 38px;
+    color: #34214a;
+
+    span {
+      color: #ff5a6e;
+    }
+  }
+
+  nav {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    margin-left: 65px;
+
+    a {
+      font-size: 15px;
+      font-weight: 500;
+      color: #333;
+      display: inline-block;
+      padding: 5px 8px;
+      transition: .2s ease;
+      text-transform: uppercase;
+      margin-top: 5px;
+
+      &:hover {
+        color: #ff5a6e;
+      }
+    }
+
+    .icon {
+      font-family: 'Material Icons';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;  /* Preferred icon size */
+      display: inline-block;
+      line-height: 1;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
   }
 }
 </style>
