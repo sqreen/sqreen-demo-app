@@ -12,7 +12,7 @@ const fakePosts = new Array(1000)
   .fill()
   .map(() => {
     return {
-      title: faker.commerce.productName().replace('sausages', 'unicorns'),
+      title: faker.commerce.productName().replace('sausage', 'unicorn').replace('ball', 'ponycorn'),
       content: faker.random.words(20),
       price: faker.commerce.price()
     };
