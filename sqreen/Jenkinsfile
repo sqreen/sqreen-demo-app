@@ -1,0 +1,76 @@
+@Library('sqreen-pipeline-library')
+import io.sqreen.pipeline.kubernetes.*;
+
+String[] TARGETS = ["4.0.0", "4", "5.0.0", "5", "6.0.0", "6", "7.0.0", "7",
+                    "8.0.0", "8", "9.0.0", "9", "10.0.0", "10", "11.0.0", "11"]
+
+Object RUNNING_TARGETS = [:]
+TARGETS.each {
+    RUNNING_TARGETS[it] = { test(it) }
+}
+
+public void nodeTemplate(String label,
+                         String imageName = 'node',
+                         String imageVersion = 'latest',
+                         String cpu = '500m',
+                         String cloud = 'kubernetes-cluster',
+                         Closure body) {
+    podTemplate(label: label, cloud: cloud, containers: [
+            containerTemplate(
+                    name: 'node',
+                    image: "$imageName:$imageVersion",
+                    command: 'cat',
+                    ttyEnabled: true,
+                    resourceRequestCpu: cpu,
+                    resourceLimitCpu: '1',
+                    resourceRequestMemory: '512Mi',
+                    resourceLimitMemory: '512Mi',
+
+            )
+    ],
+            volumes: [
+                    persistentVolumeClaim(claimName: 'npm-repo', mountPath: '/root/node_modules'),
+            ]){
+        body();
+    }
+}
+
+def test(String version) {
+    template = new PodTemplate();
+    String nodeName = template.generateSlaveName() + '-node-' + version;
+    nodeTemplate(nodeName, 'node', version) {
+        node(nodeName) {
+            container('node') {
+                unstash 'source code';
+                stage('install-' + version) {
+                    sh 'npm install';
+                }
+                stage('test-' + version) {
+                    sh 'npm run test-ci';
+                }
+            }
+        }
+    }
+}
+
+node {
+    container('jnlp') {
+        stage('SCM') {
+            checkout scm
+            stash name: 'source code', useDefaultExcludes: false
+        }
+//        if (env.BRANCH_NAME == 'master') {
+//
+//            RUNNING_TARGETS["integration_tests"] = {
+//                build job: 'IntegrationTestsRunNode', parameters: [string(name: 'ShieldRulesBranch', value: '*/master'), string(name: 'AgentNodeBranch', value: "*/${env.BRANCH_NAME}"), string(name: 'AgentNodeTestsBranch', value: '*/master'), string(name: 'IntegrationTestsBranch', value: '*/master'), string(name: 'BackEndBranch', value: '*/master')]
+//            }
+//        }
+        try {
+            parallel(RUNNING_TARGETS)
+        }
+        catch (Exception e) {
+            utils.failBuild()
+            throw e
+        }
+    }
+}

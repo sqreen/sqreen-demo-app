@@ -1,0 +1,89 @@
+String[] TARGETS = ["4.8", "4", "6.13.1", "6",
+                        "7.5", "7",
+                        "8.0.0", "8", "9.10.1", "9", "10.0.0", "10", "11.4.0", "11",
+                        "8.0.0-alpine", "8-alpine", "9.10.1-alpine", "9-alpine", "10-alpine", "11-alpine",
+                    "12.0.0", "12", "12-alpine"]
+
+Object RUNNING_TARGETS = [:]
+TARGETS.each { it ->
+    RUNNING_TARGETS.putAt(it, { test it })
+}
+RUNNING_TARGETS.putAt("nightly_v12", { tryTest("v12", "vdeturckheim/node_nightly") })
+RUNNING_TARGETS.putAt("nightly_v13", { tryTest("v13", "vdeturckheim/node_nightly") })
+
+def runInAWS(String version, String base_image = "node") {
+
+    withCredentials([[
+                             $class: 'AmazonWebServicesCredentialsBinding',
+                             credentialsId: 'integration_tests_aws',
+                             accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                     ]]) {
+
+        awsCodeBuild \
+                awsAccessKey: env.AWS_ACCESS_KEY_ID, \
+                awsSecretKey: env.AWS_SECRET_ACCESS_KEY, \
+                buildSpecFile: 'buildspec.yml', \
+                credentialsType: 'keys', \
+                envVariables: "[ { NODE_VERSION, ${version} }, { BASE_IMAGE, ${base_image} } ]", \
+                projectName: "sqreen-agent-nodejs", \
+                region: 'eu-west-1', \
+                sourceControlType: 'jenkins',
+                exceptionFailureMode: 'ENABLED'
+    }
+}
+
+def tryTest(String version, String base_image = "node", flacky = false) {
+
+    stage("test (${base_image} ${version})") {
+
+        try {
+            retry(3) {
+                runInAWS(version, base_image)
+            }
+        }
+        catch (e) {
+            print e
+            if (!flacky) {
+                currentBuild.result = "FAILED"
+                throw e
+            }
+        }
+    }
+}
+def test(String version, String base_image = "node") {
+    stage("test (${base_image} ${version})") {
+        tryTest(version, base_image)
+    }
+}
+
+def runIntegrationTests() {
+    stage('build images') {
+        build job: 'IntegrationTestsRunDev', parameters: [
+                ['$class': 'BooleanParameterValue', name: 'RUN_NODE', value: Boolean.valueOf(true)],
+                ['$class': 'BooleanParameterValue', name: 'RUN_RUBY', value: Boolean.valueOf(false)],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_BACKEND', value: Boolean.valueOf(false)],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_INTEGRATION_TESTS', value: Boolean.valueOf(false)],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_NODE', value: Boolean.valueOf(true)],
+                ['$class': 'StringParameterValue', name: 'NODE_AGENT_BRANCH', value: String.valueOf("${env.BRANCH_NAME}")],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_RUBY', value: Boolean.valueOf(false)],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_DYNAMO', value: Boolean.valueOf(false)],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_REDIS', value: Boolean.valueOf(false)],
+                ['$class': 'BooleanParameterValue', name: 'BUILD_MONGO', value: Boolean.valueOf(false)]
+        ]
+    }
+}
+
+// RUNNING_TARGETS["Integration tests"] = { runIntegrationTests() }
+
+
+node('master') {
+
+    stage('SCM') {
+        checkout scm
+    }
+
+    stage('test') {
+        parallel RUNNING_TARGETS
+    }
+}
