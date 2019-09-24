@@ -116,8 +116,8 @@ export default {
   components: { CustomDemoNav, MainContainer, ConnectedPost, hoc },
   data() {
     return {
-      email: "admin@admin.com",
-      password: "admin",
+      email: "foo@bar.baz",
+      password: "19841984",
       loginFailed: false
     };
   },
