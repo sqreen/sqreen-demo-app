@@ -3,9 +3,9 @@
 */
 
 <template>
-    <wrap-container>
-            <post v-for="(data, i) in vuexApiData" :key="i" :post="data"/>
-    </wrap-container>
+  <wrap-container>
+    <post v-for="(data, i) in vuexApiData" :key="i" :post="data"/>
+  </wrap-container>
 </template>
 
 <script>

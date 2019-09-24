@@ -10,23 +10,23 @@
         <div>
           <router-link :to="{name: 'customDemo'}">Home</router-link>
           <router-link :to="{name: 'customDemo'}">Mini figurines</router-link>
-          <router-link :to="{name: 'customDemo'}">My favorite</router-link> 
+          <router-link :to="{name: 'customDemo'}">My favorites</router-link> 
         </div>
         <div>
           <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">
             <div class="icon">person_outlined</div>
           </router-link>
           <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">
-            <div class="icon">search_outlined</div>
+            <div class="icon">search</div>
           </router-link>
           <router-link v-if="!$store.getters.authenticatedEmail" :to="{name: 'login'}">
-            <div class="icon">shopping_cart_outlined</div>
+            <div class="icon">shopping_cart</div>
           </router-link>
         </div>
       </nav>
     </div>
-    <div v-if="$store.getters.authenticatedEmail">
-        Hello {{$store.getters.authenticatedEmail}} !
+    <div v-if="$store.getters.authenticatedEmail" class="toast">
+      Hello {{$store.getters.authenticatedEmail}} !
     </div>
   </div>
 </template>
@@ -67,7 +67,7 @@
       padding: 5px 8px;
       transition: .2s ease;
       text-transform: uppercase;
-      margin-top: 5px;
+      margin-top: 15px;
 
       &:hover {
         color: #ff5a6e;
@@ -88,6 +88,20 @@
       direction: ltr;
     }
   }
+}
+
+.toast {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  display: block;
+  background-color: #6dd56d;
+  border-radius: 4px;
+  margin: 10px auto;
+  padding: 20px 25px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 18px;
 }
 </style>
 

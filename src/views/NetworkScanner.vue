@@ -5,7 +5,7 @@
         <h5>Scanned paths - {{completionPercentage}}/100 %</h5>
         <p>Successfully scanned paths  ({{errors.length + success.length}}) - ({{success.length}})</p>
         <div class="routes-container">
-            <div class="green" v-for="route in success">{{route}}</div>
+            <div class="green" v-for="route in success" :key="route">{{route}}</div>
             <div class="red" v-for="(route) in errors" :key="route">{{route}}</div>
         </div>
     </div>

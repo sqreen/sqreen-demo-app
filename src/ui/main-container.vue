@@ -10,8 +10,9 @@
 
 <style scoped>
 .v-container {
-  max-width: 700px;
-  margin: auto;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
 }
 </style>
 <script>

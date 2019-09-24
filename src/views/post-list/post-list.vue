@@ -3,12 +3,12 @@
 */
 
 <template>
-    <div>
-        <custom-demo-nav/>
-        <hoc key-path="posts">
-            <template slot="success"><post-list/></template>
-        </hoc>
-    </div>
+  <div>
+    <custom-demo-nav/>
+    <hoc key-path="posts">
+      <template slot="success"><post-list/></template>
+    </hoc>
+  </div>
 </template>
 
 <script>
