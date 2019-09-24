@@ -3,22 +3,20 @@
 */
 
 <template>
-    <div class="wrap-container">
-        <slot/>
-    </div>
+  <div class="wrap-container">
+    <slot/>
+  </div>
 </template>
 
 <style scoped lang="scss">
 .wrap-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 250px);
-  justify-content: center;
-  grid-column-gap: 1em;
-  grid-row-gap: 1em;
-  & > * {
-    height: 300px;
-    overflow: hidden;
-  }
+  padding: 25px 0 20px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 </style>
 
