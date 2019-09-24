@@ -93,6 +93,10 @@ const heartBeatWorker = module.exports._heartBeatWorker = function () {
  */
 const startHeartBeatLoop = module.exports._startHeartBeatLoop = function (interval) {
 
+    // Heartbeat can be forced using environment value
+    const config = require('../config/index').getConfig();
+    interval = config.heartbeat_delay * 1000 || interval;
+
     require('../command/features').featureHolder.heartbeat_delay = interval / 1000;
     return setInterval(() => {
 
