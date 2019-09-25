@@ -19,7 +19,7 @@
     <div class="img" :style="{backgroundImage: 'url('+picture+')'}"></div>
     <div>
       <span class="title">{{postTitle}}</span>
-      <span class="price">${{price}}</span>
+      <span class="price">${{priceUSD}}</span>
       <router-link :to="`post/${postId}`" append>Shop now</router-link>
     </div>
   </div>
