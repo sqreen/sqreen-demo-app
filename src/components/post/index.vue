@@ -7,7 +7,7 @@
     <div class="img" :style="{backgroundImage: 'url('+picture+')'}"></div>
     <div class="right">
       <span class="title">{{postTitle}}</span>
-      <span class="price">{{price}} € - ${{priceUSD}}</span>
+      <span class="price">${{priceUSD}} - €{{price}}</span>
       <p>{{postContent}}</p>
       <div class="inline">
         <img src="https://sqreen-assets.s3-eu-west-1.amazonaws.com/test-app/group-2.svg" alt="">
@@ -19,7 +19,7 @@
     <div class="img" :style="{backgroundImage: 'url('+picture+')'}"></div>
     <div>
       <span class="title">{{postTitle}}</span>
-      <span class="price">${{priceUSD}}</span>
+      <span class="price">€{{price}}</span>
       <router-link :to="`post/${postId}`" append>Shop now</router-link>
     </div>
   </div>
