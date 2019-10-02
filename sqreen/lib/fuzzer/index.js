@@ -82,7 +82,7 @@ module.exports.reload = function (runtime) {
 };
 
 /**
- * @typedef {{ engine: { timeout: number } }} Options
+ * @typedef {{ engine: { timeout: number, throughput: { batch: number, delay: number } } }} Options
  * @typedef {{ params: { query: {}, form: {} } }} InputRequest
  * @typedef {InputRequest[]} InputRequests
  * @typedef {{ default: InputRequest, requests: InputRequests }} Corpus
@@ -309,8 +309,12 @@ const startFuzzer = function (run) {
             // Try to continue the fuzzing
         }
         return !!STATE.isRunning();
-    // TODO: put those values in fuzzer options
-    }, { delay: 100, batchlen: 20 }).then(() => {
+    },
+    // requests injection rate
+    {
+        delay: options.engine.throughput.delay,
+        batchlen: options.engine.throughput.batch
+    }).then(() => {
 
         // @ts-ignore
         Logger.INFO('All requests have been replayed! Up to the server to process them now...');
