@@ -204,6 +204,31 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
     }
 
     /**
+     * Update / add a fuzzer endpoint metric
+     *
+     * @param {string} endpoint - A path identifying an endpoint.
+     * @param {MetricKey} key - A metric key (ex: 'requests.fuzzed').
+     * @param {any} value - Update metric using this value.
+     * @param {MetricType} [type] - A metric type (optional on existing metrics).
+     * @returns {boolean}
+     */
+    updateEndpointMetric(endpoint, key, value, type) {
+
+        return this._runInContext(this._api_updateEndpointMetric)(endpoint, key, value, type);
+    }
+
+    /**
+     * Register an endpoint in statistics.
+     *
+     * @param {string} endpoint - A path identifying an endpoint.
+     * @returns {boolean}
+     */
+    registerEndpoint(endpoint) {
+
+        return this._runInContext(this._api_registerEndpoint)(endpoint);
+    }
+
+    /**
      * Retrieve current fuzzer statistics.
      *
      * @returns {MetricsJSON}
@@ -333,6 +358,8 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
         this._api_prepareRequest = this._exportAPI('prepareRequest');
         this._api_finalizeRequest = this._exportAPI('finalizeRequest');
         this._api_updateMetric = this._exportAPI('updateMetric');
+        this._api_updateEndpointMetric = this._exportAPI('updateEndpointMetric');
+        this._api_registerEndpoint = this._exportAPI('registerEndpoint');
         this._getter_stats = this._exportGetter('stats');
     }
 };

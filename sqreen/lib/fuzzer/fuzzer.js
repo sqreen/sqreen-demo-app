@@ -12,6 +12,7 @@ const FuzzStats = require('./stats');
 /**
  * @typedef { import('http').IncomingMessage } IncomingMessage
  * @typedef { import('./index').Options } Options
+ * @typedef { import('./index').Run } Run
  * @typedef { import('./index').InputRequest } InputRequest
  * @typedef { import('./index').InputRequests } InputRequests
  * @typedef { import('./stats').MetricKey } MetricKey
@@ -61,16 +62,13 @@ const asyncForEach = (arr, cbk, options) => {
 const Fuzzer = module.exports = class extends Vm.VMBinding {
     /**
      * @param {Vm.VM} vm - A VM instance.
-     * @param {Options} options - Fuzzer options.
-     * @param {InputRequest} def - Template request.
      */
-    constructor(vm, options, def) {
+    constructor(vm) {
 
         const stats = new FuzzStats(vm);
-        super(vm, 'Fuzzer', options, def, stats.shadow);
+        super(vm, 'Fuzzer', stats.shadow);
         this._fuzzedreqs = 0;
         this._stats = stats;
-        this._options = options;
         this._mutationsdone = false;
         this._handledreqs = 0;
         this._timeout = null;
@@ -164,6 +162,26 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
         return this._runInContext(this._getter_stats)();
     }
 
+    get runstats() {
+
+        return this._runInContext(this._getter_runstats)();
+    }
+
+    /**
+     * Get current run ID.
+     *
+     * @returns {string | undefined} RunID if successful, undefined if not.
+     */
+    get runid() {
+
+        return this._runInContext(this._getter_runid)();
+    }
+
+    /**
+     * Retrieve the number of requests fuzzed.
+     *
+     * @returns {number} Fuzzed requests.
+     */
     get fuzzed() {
 
         return this._fuzzedreqs;
@@ -195,9 +213,8 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
     mutateRequests(requests, cbk, options) {
 
         options = options || {};
-        const count = requests.length;
         return Promise.resolve()
-            .then(() => this.mutationsPerRequest(count))
+            .then(() => this.mutationsPerRequest())
             .then((mutations) =>
 
                 new Promise((resolve) => {
@@ -209,6 +226,7 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
                         return resolve();
                     };
 
+                    const count = requests.length;
                     if (!count || count !== mutations.length) {
                         return done();
                     }
@@ -241,24 +259,32 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
     /**
      * Compute an array with a balanced number of mutations for each request.
      *
-     * @param {number} requests - The number of requests.
-     * @param {number} [mutations] - The total number of mutations.
      * @returns {Array} An array of mutations count, one for each request.
      */
-    mutationsPerRequest(requests, mutations) {
+    mutationsPerRequest() {
 
-        return this._runInContext(this._api_mutationsPerRequest)(requests, mutations);
+        return this._runInContext(this._api_mutationsPerRequest)();
     };
 
     /**
      * Register input requests into the fuzzer.
      *
-     * @param {InputRequests} requests - An input request object.
+     * @param {Run} run - An input Run (corpus / options).
+     * @returns {string | undefined} RunID if successful, undefined if not.
+     */
+    register(run) {
+
+        return this._runInContext(this._api_register)(run);
+    }
+
+    /**
+     * Reset fuzzer (unregister current run, resets stats).
+     *
      * @returns {boolean} true if successful.
      */
-    registerRequests(requests) {
+    reset() {
 
-        return this._runInContext(this._api_registerRequests)(requests);
+        return this._runInContext(this._api_reset)();
     }
 
     /**
@@ -307,9 +333,12 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
         this._api_updateMetric = this._exportAPI('updateMetric');
         this._api_updateEndpointMetric = this._exportAPI('updateEndpointMetric');
         this._api_updateRequest = this._exportAPI('updateRequest');
-        this._api_registerRequests = this._exportAPI('registerRequests');
+        this._api_register = this._exportAPI('register');
+        this._api_reset = this._exportAPI('reset');
         this._getter_options = this._exportGetter('options');
         this._getter_stats = this._exportGetter('stats');
+        this._getter_runstats = this._exportGetter('runstats');
+        this._getter_runid = this._exportGetter('runid');
     }
 
     static _bindVMStatic() {
@@ -342,15 +371,16 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
     }
 
     /**
-     * Update / add a fuzzer metric
+     * Update an original input request based on mutated one values.
      *
      * @param {InputRequest} orig - Original input request.
      * @param {Request} mutated - A mutated input request.
+     * @param {number | undefined} hash - Assign a hash to the new request.
      * @returns {InputRequest}
      */
-    _updateRequest(orig, mutated) {
+    _updateRequest(orig, mutated, hash) {
 
-        return this._runInContext(this._api_updateRequest)(orig, mutated);
+        return this._runInContext(this._api_updateRequest)(orig, mutated, hash);
     }
 
     _onRequestDone(req) {
@@ -364,9 +394,9 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
 
         // @ts-ignore
         const [orig, mutated] = req.__sqreen_fuzzinput;
-        const updated = this._updateRequest(orig, mutated);
+        const updated = this._updateRequest(orig, mutated, hash);
         // @ts-ignore
-        this.emit('request_new', req, hash, updated);
+        this.emit('request_new', req, updated);
     }
 
     _onDone() {

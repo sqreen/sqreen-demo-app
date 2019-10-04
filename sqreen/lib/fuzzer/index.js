@@ -5,7 +5,6 @@
 // @ts-check
 'use strict';
 
-const UuidV4 = require('uuid/v4');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
 const Logger = require('../logger');
@@ -85,7 +84,7 @@ module.exports.reload = function (runtime) {
  * @typedef {{ engine: { timeout: number, throughput: { batch: number, delay: number } } }} Options
  * @typedef {{ params: { query: {}, form: {} } }} InputRequest
  * @typedef {InputRequest[]} InputRequests
- * @typedef {{ default: InputRequest, requests: InputRequests }} Corpus
+ * @typedef {{ defaults: InputRequest, requests: InputRequests }} Corpus
  * @typedef {{ options: Options, corpus: Corpus }} Run
  */
 /**
@@ -191,30 +190,19 @@ const startFuzzer = function (run) {
         return;
     }
 
-    const runUUID = UuidV4();
+    const fuzzer = new Fuzzer(vm);
 
-    const fuzzer = new Fuzzer(vm, options, run.corpus.default);
-
-    // @ts-ignore
-    fuzzer.on('request_new', (req, hash, newinput) => {
+    const runID = fuzzer.register(run);
+    if (runID === undefined) {
 
         // @ts-ignore
-        Logger.INFO('Reveal found a new interesting mutated request.');
-
-        newinput.runid = runUUID;
-        newinput.hash = hash;
-
-        recordMutatedRequest(newinput);
-    });
+        Logger.ERROR('Reveal failed to register current run.');
+        return;
+    }
 
     const sendStats = (done) => {
 
-        const stats = {
-            date: Date.now(),
-            runid: runUUID,
-            stats: fuzzer.stats
-        };
-        return recordStats(stats, done);
+        return recordStats(fuzzer.runstats, done);
     };
 
     const fuzzerDone = function (timeout) {
@@ -223,7 +211,7 @@ const startFuzzer = function (run) {
             fuzzer.updateMetric('fuzzer.stopped', Date.now(), METRICTYPE.LAST);
 
             // @ts-ignore
-            Logger.INFO(`Reveal has successfully executed the current run (${runUUID}).`);
+            Logger.INFO(`Reveal has successfully executed the current run (${runID}).`);
 
             sendStats(true);
         }
@@ -231,6 +219,15 @@ const startFuzzer = function (run) {
             STATE.stopped();
         }
     };
+
+    // @ts-ignore
+    fuzzer.on('request_new', (req, newreq) => {
+
+        // @ts-ignore
+        Logger.INFO('Reveal found a new interesting mutated request.');
+
+        recordMutatedRequest(newreq);
+    });
 
     // @ts-ignore
     fuzzer.once('all_requests_done', () => {
@@ -266,7 +263,6 @@ const startFuzzer = function (run) {
         fuzzer.armTimeout(100);
     });
 
-    fuzzer.registerRequests(requests);
     fuzzer.updateMetric('fuzzer.started', Date.now(), METRICTYPE.LAST);
 
     // This is very important if we don't want to deadlock the fuzzer
@@ -326,7 +322,7 @@ const startFuzzer = function (run) {
             Logger.ERROR(`"Failed to replay requests with "${err.message}"`);
         }
     });
-    return runUUID;
+    return runID;
 };
 
 /**
