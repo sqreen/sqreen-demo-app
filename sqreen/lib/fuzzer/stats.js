@@ -16,17 +16,18 @@ const METRICTYPE = require('./metrics').METRICTYPE;
  *
  * @typedef {string} MetricKey - A metric key (ex: 'requests.fuzzed').
  * @typedef {number} MetricType - A metric type (Sum, Average, Last, Collect, ...).
- * @typedef {{ }} MetricsJSON
+ * @typedef {Record<string, any>} MetricsJSON
+ * @typedef {{success: boolean, unique: boolean, hash: number}} FinalizeRequestResult
  */
 
-class RequestStats extends Vm.VMBinding {
+class ReqStats extends Vm.VMBinding {
 
     /**
      * @param {Vm.VM} vm - A VM instance.
      */
     constructor(vm) {
 
-        super(vm, 'RequestStats');
+        super(vm, 'ReqStats');
         this._bindVM();
     }
 
@@ -103,9 +104,9 @@ class RequestStats extends Vm.VMBinding {
      *
      * @returns {string[]}
      */
-    get rawTraces() {
+    get traces() {
 
-        return this._runInContext(this._getter_rawTraces)();
+        return this._runInContext(this._getter_traces)();
     }
 
     _recordSymbols(syms) {
@@ -121,7 +122,7 @@ class RequestStats extends Vm.VMBinding {
         this._api_finalize = this._exportAPI('finalize');
         this._getter_hash = this._exportGetter('hash');
         this._getter_stats = this._exportGetter('stats');
-        this._getter_rawTraces = this._exportGetter('rawTraces');
+        this._getter_traces = this._exportGetter('traces');
     }
 }
 
@@ -149,7 +150,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
         if (!req) {
             return false;
         }
-        const reqstats = new RequestStats(this._vm);
+        const reqstats = new ReqStats(this._vm);
         // @ts-ignore
         req.__sqreen_fuzzstats = reqstats;
         return this._prepareRequest(mutated, reqstats.shadow);
@@ -164,7 +165,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      */
     finalizeRequest(req, mutated) {
 
-        const reqstats = FuzzStats.getRequestStats(req);
+        const reqstats = FuzzStats.getReqStats(req);
         if (reqstats === null) {
             return false;
         }
@@ -173,9 +174,9 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
         if (!ret) {
             return false;
         }
-        if (ret.isNewTrace) {
+        if (ret.unique) {
             // @ts-ignore
-            this.emit('request_new', req, ret.traceHash);
+            this.emit('request_new', req, ret.hash);
         }
         return ret.success;
     }
@@ -247,7 +248,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      */
     static recordTrace(req, trace) {
 
-        const reqstats = FuzzStats.getRequestStats(req);
+        const reqstats = FuzzStats.getReqStats(req);
         if (reqstats === null) {
             return false;
         }
@@ -263,7 +264,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      */
     static recordBacktrace(req) {
 
-        const reqstats = FuzzStats.getRequestStats(req);
+        const reqstats = FuzzStats.getReqStats(req);
         if (reqstats === null) {
             return false;
         }
@@ -312,7 +313,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      */
     static updateRequestMetric(req, key, value, type) {
 
-        const reqstats = FuzzStats.getRequestStats(req);
+        const reqstats = FuzzStats.getReqStats(req);
         if (reqstats === null) {
             return false;
         }
@@ -325,7 +326,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      *
      * @param {IncomingMessage} req - An HTTP request.
      */
-    static getRequestStats(req) {
+    static getReqStats(req) {
         // @ts-ignore
         if (!req.__sqreen_fuzzstats) {
             return null;
@@ -336,7 +337,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
 
     /**
      * @param {Request} req - The mutated input.
-     * @param {RequestStats} reqstats - Request statistics.
+     * @param {ReqStats} reqstats - Request statistics.
      */
     _prepareRequest(req, reqstats) {
 
@@ -345,7 +346,9 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
 
     /**
      * @param {Request} req - The mutated input.
-     * @param {RequestStats} reqstats - Request statistics.
+     * @param {ReqStats} reqstats - Request statistics.
+     *
+     * @returns {FinalizeRequestResult} Results of request handling.
      */
     _finalizeRequest(req, reqstats) {
 
