@@ -20,6 +20,10 @@ yarn-error.log*
 *.sln
 *.sw*
 
+# package.json specifies sqreen version '*' but yarn.lock will
+# override it and lock to a specific version 
+yarn.lock
+
 sqreen-shop-db
 
 sqreen.json
