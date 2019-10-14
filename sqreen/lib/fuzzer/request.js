@@ -58,7 +58,7 @@ class FakeMessage extends HTTP.IncomingMessage {
             options.protocol = options.protocol.trim().split(':').splice(0, 1)[0] + ':';
         }
         const protocol      = options.protocol || Default.protocol;
-        const [host, port]  = (options.host || options.hostname).split(':');
+        const [host, port]  = (options.host || options.hostname || Default.host).split(':');
         this.host           = host;
         this.port           = options.port || port || (protocol === 'https:' ? 443 : 80);
         this.url            = options.url || Default.url;
@@ -193,7 +193,7 @@ class FakeMessage extends HTTP.IncomingMessage {
             let length = 0;
             if (!srcIsNull) {
                 if (!srcIsBuffer) {
-                    src = new Buffer(src);
+                    src = Buffer.from(src);
                 }
                 length = src.length;
             }

@@ -2,6 +2,57 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.35.1]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* call waf clearAll only at rule reload
+
+### Security
+
+N/A
+
+## [1.35.0]
+### Added
+
+* Reporting libSqreen version properly
+
+### Changed
+
+* Updated libSqreen to 0.2.0
+* place Sqreen Express middleware after body parser
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+N/A
+
+### Security
+
+N/A
+
 ## [1.34.0]
 ### Added
 

@@ -33,7 +33,7 @@ const readPassword = function (pwd) {
         score: stenght.score,
         crack_times_seconds: stenght.crack_times_seconds,
         crack_times_display: stenght.crack_times_display
-    }
+    };
 };
 
 const getAuth = function (auth, urlstr) {

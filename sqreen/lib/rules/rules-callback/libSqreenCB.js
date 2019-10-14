@@ -4,6 +4,8 @@ const Logger = require('../../logger');
 const Builder = require('./callbackBuilder');
 let LibSqreen;
 
+const DEFAULT_MAX_TIMEOUT = 5; // ms
+
 // On windows, we don't run this for now
 //$lab:coverage:off$
 let first = true;
@@ -33,9 +35,9 @@ module.exports.getCbs = function (rule) {
 
     // check rule is properly formed
     const opt = rule.data.values;
+    const max_budget = opt.max_budget_ms || DEFAULT_MAX_TIMEOUT;
     const binding_accessors = opt.binding_accessors;
     const waf_rules = opt.waf_rules;
-    LibSqreen.clearAll();
     const inst = new LibSqreen(UUID.v4(), waf_rules);
 
     return {
@@ -51,9 +53,7 @@ module.exports.getCbs = function (rule) {
                 params[ba] = Builder.bindThis.apply({ data: {} }, [ba, {}, {}, {}, req, req]);
             }
 
-            if (timeout === Infinity) {
-                timeout = 2; // ms
-            }
+            timeout = Math.min(timeout, max_budget);
             const res = inst.run(params, timeout * 1000); // microsecond
 
             if (rule.block !== true) {
@@ -64,4 +64,16 @@ module.exports.getCbs = function (rule) {
         }
     };
 };
+
+module.exports.clearAll = function () {
+
+    try {
+        require('sq-native').clearAll();
+        return true;
+    }
+    catch (e) {
+        return false;
+    }
+};
+
 //$lab:coverage:on$

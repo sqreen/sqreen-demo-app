@@ -96,36 +96,43 @@ module.exports = function (identity, module) {
     }
 
 
-    const hasCookieParser = Util.hasCookieParser();
+    const cookieAndBodyNames = ['cookieParser', 'jsonParser', 'rawParser', 'textParser', 'urlencodedParser']; // TODO: check by comparing methods... how?
+    let rank = 0;
+    const getMiddleWare = function () {
+
+        const myRank = ++rank;
+        return function (req, res, next) {
+
+            if (myRank === rank) { // I am the last injected middleware
+                return Util.sqreenMiddleWare.apply(this, arguments);
+            }
+
+            return next();
+        };
+    };
 
     // for lazyrouter see https://github.com/expressjs/express/blob/c087a45b9cc3eb69c777e260ee880758b6e03a40/lib/application.js#L137
     const lazyrouter = module.application.lazyrouter;
     const use = module.application.use;
-    if (!hasCookieParser) {
-        module.application.lazyrouter = function () {
+    module.application.lazyrouter = function () {
 
-            const res = lazyrouter.apply(this, arguments);
-            if (!this.hasSqreenMiddleware) {
-                this._router.use(Util.sqreenMiddleWare);
-                this.hasSqreenMiddleware = true;
-            }
-            return res;
-        };
-    }
-    else {
-        module.application.use = function () {
+        if (this._sq_lazy_done === true) {
+            return lazyrouter.apply(this, arguments);
+        }
+        const res = lazyrouter.apply(this, arguments);
+        this._router.use(getMiddleWare());
+        this._sq_lazy_done = true;
+        return res;
+    };
+    module.application.use = function () {
 
-            if (!this.hasSqreenMiddleware) {
-                if (arguments[0].name === 'cookieParser') {
-                    const result = use.apply(this, arguments);
-                    use.apply(this, [Util.sqreenMiddleWare]);
-                    this.hasSqreenMiddleware = true;
-                    return result;
-                }
-            }
-            return use.apply(this, arguments);
-        };
-    }
+        if (cookieAndBodyNames.indexOf(arguments[0].name) > -1) {
+            const result = use.apply(this, arguments);
+            use.apply(this, [getMiddleWare()]);
+            return result;
+        }
+        return use.apply(this, arguments);
+    };
 
 
     for (let i = 0; i < Modules['express:lib/router/layer.js'].length; ++i) {

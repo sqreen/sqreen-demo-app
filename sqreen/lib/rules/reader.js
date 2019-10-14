@@ -29,9 +29,6 @@ module.exports.verifyRule = function (rule, doNotVerifySignature) {
     if (!doNotVerifySignature) {
         Assert(Signature.verifyRuleSignature(rule), `Signature invalid for rule ${rule.name}`);
     }
-    if (rule.name === 'reveal_collect_req') {
-        rule.data.values[0] = 1.0;
-    }
 
     return true;
 };

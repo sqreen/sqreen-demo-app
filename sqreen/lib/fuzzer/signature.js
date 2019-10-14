@@ -22,11 +22,11 @@ const SIGNTYPE = {
 };
 
 /**
- * @typedef {{type: number, value: string}} RuntimeSign
- * @typedef {{code: string, version: number, signatures: RuntimeSign[]}} Runtime
+ * @typedef { import('./index').RuntimeInterface } RuntimeInterface
  */
+
 /**
- * @param {Runtime} runtime - A reveal runtime object.
+ * @param {RuntimeInterface} runtime - A reveal runtime object.
  * @param {number} [signType] - A signature type.
  * @returns {{payload: string, signature: string}}
  */
@@ -48,7 +48,7 @@ const getNormalizedPayloadAndSignature = module.exports._getNormalizedPayload = 
 };
 
 /**
- * @param {Runtime} runtime - A reveal runtime object.
+ * @param {RuntimeInterface} runtime - A reveal runtime object.
  * @returns boolean - True if signature has been successfully verified.
  */
 module.exports.verifyRuntimeSignature = function (runtime) {

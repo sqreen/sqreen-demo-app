@@ -6,7 +6,6 @@
 const Logger = require('../logger');
 const Exception = require('../exception');
 const Actions = require('./actions');
-const CmdInject = require('./inject');
 
 const AGENT_VERSION = require('../../package.json').version;
 
@@ -26,25 +25,15 @@ const handleCmdResult = function (command, output, err) {
             status: success,
             output
         };
-        if (command.is_injected) {
-            res = Promise.resolve(answer);
-        }
-        else {
-            const response = {};
-            response[command.uuid] = answer;
-            res = report(response);
-        }
+        const response = {};
+        response[command.uuid] = answer;
+        res = report(response);
     }
     else {
         res = Promise.resolve();
     }
     if (!success) {
-        if (command.is_injected) {
-            res = Promise.reject(err);
-        }
-        else {
-            res = Exception.report(err);
-        }
+        res = Exception.report(err);
     }
     return res;
 };
@@ -67,7 +56,6 @@ module.exports.execute = function (command, isLogin) {
         return Promise.resolve();
     }
     command.params = command.params || [];
-    command.is_injected = CmdInject.isCmdInjectable(command);
 
     if (Actions[command.name]) { // is the command known
         Logger.DEBUG(`execute command ${command.name} with params ${JSON.stringify(command.params)}`);

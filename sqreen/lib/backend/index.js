@@ -43,14 +43,14 @@ const getRequest = function (options, nbRetry) {
     else {
         return Promise.reject(new Error(`unhandled verb ${options.method}`));
     }
-    for(let i = 0; i < nbRetry; ++i) {
+    for (let i = 0; i < nbRetry; ++i) {
         const delay = Math.min(i * DELAY_RETRY, 5 * 60 * 1000); // 5 minutes max
         prom = prom.catch((err) => {
 
             if (err && err.statusCode === 401) {
                 return  Promise.reject(err);
             }
-            return Util.timeout(delay).then(() => getRequest(options))
+            return Util.timeout(delay).then(() => getRequest(options));
         });
     }
     return prom;
@@ -146,8 +146,9 @@ module.exports.login = function (apiKey, appName) {
                 if (response.commands) {
                     const Command = require('../command');
                     Promise.all(response.commands.map((cmd) => {
+
                         cmd.pack_id = response.pack_id;
-                        return Command.execute(cmd, true)
+                        return Command.execute(cmd, true);
                     }))
                         .catch(() => {});
                 }
@@ -159,8 +160,12 @@ module.exports.login = function (apiKey, appName) {
 
                 if (response.rules) {
                     const Rules = require('../rules');
-                    response.rules.forEach((r) => r.rulesPack = response.pack_id);
+                    response.rules.forEach((r) => {
+
+                        r.rulesPack = response.pack_id;
+                    });
                     const Feature = require('../command/features');
+                    require('../rules/rules-callback/libSqreenCB').clearAll();
                     Rules.enforceRuleList(response.rules, !Feature.read().rules_signature);
                 }
 

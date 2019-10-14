@@ -13,9 +13,11 @@ const listenerMixin = {
     },
     _listener_guard() {
 
+        // $lab:coverage:off$
         if (!this._listener) {
             throw new Error('_initListener not called!');
         }
+        // $lab:coverage:on$
     },
     on(eventName, listener) {
 

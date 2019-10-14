@@ -81,32 +81,12 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
 
     /**
      * @param {Vm.VM} vm - A VM instance.
-     * @param {object | undefined} options - Raw fuzzer options.
-     * @returns {Options}
+     * @param {object | undefined} run - Raw fuzzer run.
+     * @returns {Run}
      */
-    static validateOptions(vm, options) {
+    static validateRun(vm, run) {
 
-        return Vm.VM.runInVMContext(vm, this._api_validateOptions)(options);
-    }
-
-    /**
-     * @param {Vm.VM} vm - A VM instance.
-     * @param {object | undefined} request - A raw input request.
-     * @returns {InputRequest}
-     */
-    static validateRequest(vm, request) {
-
-        return Vm.VM.runInVMContext(vm, this._api_validateRequest)(request);
-    }
-
-    /**
-     * @param {Vm.VM} vm - A VM instance.
-     * @param {object[] | undefined} requests - Raw input requests.
-     * @returns {InputRequests}
-     */
-    static validateRequests(vm, requests) {
-
-        return Vm.VM.runInVMContext(vm, this._api_validateRequests)(requests);
+        return Vm.VM.runInVMContext(vm, this._api_validateRun)(run);
     }
 
     /**
@@ -343,9 +323,7 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
 
     static _bindVMStatic() {
 
-        this._api_validateOptions = Vm.VM.exportStaticAPI('Fuzzer', 'validateOptions');
-        this._api_validateRequest = Vm.VM.exportStaticAPI('Fuzzer', 'validateRequest');
-        this._api_validateRequests = Vm.VM.exportStaticAPI('Fuzzer', 'validateRequests');
+        this._api_validateRun = Vm.VM.exportStaticAPI('Fuzzer', 'validateRun');
     }
 
     /**

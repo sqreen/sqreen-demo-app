@@ -100,6 +100,7 @@ const loadRuleList  = module.exports._loadRuleList = function (ruleList, doNotVe
 const UpdatePayload = module.exports._UpdatePayload = class {
 
     constructor(point) {
+
         this.moduleName = point.moduleName;
         this.methodName = point.methodName;
         this.file = point.file;

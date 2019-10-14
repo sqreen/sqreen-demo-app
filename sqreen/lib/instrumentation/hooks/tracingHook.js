@@ -3,7 +3,6 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
-const CmdInject = require('../../command/inject');
 const Fuzzer = require('../../fuzzer');
 const UuidV4 = require('uuid/v4');
 const OnFinished = require('on-finished');
@@ -92,14 +91,6 @@ module.exports.enable = function (module, identity) {
 
                 if (!isEmitter(req) || !isEmitter(res)) {
                     return listener.apply(this, arguments);
-                }
-
-                if (CmdInject.isCmdInjectable() && CmdInject.isCmdReq(req)) {
-                    CmdInject.handleCmdReq(req, res).then((_res) => {
-
-                        _res.end();
-                    });
-                    return;
                 }
 
                 const budget = Budget.getBudget(Features.perfmon(), req); // perf level enabled ?

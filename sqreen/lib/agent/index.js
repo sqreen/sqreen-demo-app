@@ -20,8 +20,8 @@ const INTERNAL_MESSAGES = require('../enums/agent').INTERNAL_MESSAGES;
 process.on(INTERNAL_MESSAGES.SQREEN_LOADED_TWICE, (data) => {
 
     const Message = require('../agent_message/index');
-    const text =  `Sqreen agent has been loaded twice in the application. The second instance will be ignored and SDK calls will be reported to first loaded agent.\n`
-    + `Sqreen can behave in unexpected manner.\n`
+    const text =  'Sqreen agent has been loaded twice in the application. The second instance will be ignored and SDK calls will be reported to first loaded agent.\n'
+    + 'Sqreen can behave in unexpected manner.\n'
     + `Active Sqreen agent version ${data.existing} - disabled agent is version ${data.current}.`;
 
     const message = new Message(Message.KIND.agent_required_twice, text, {});

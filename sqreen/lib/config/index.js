@@ -119,7 +119,7 @@ const encodings = [
 const readConfigFile = function (path) {
 
     for (const encoding of encodings) {
-        let res = tryeReadConfigFile(path, encoding);
+        const res = tryeReadConfigFile(path, encoding);
         if (res && Object.keys(res).length > 0) {
             return res;
         }

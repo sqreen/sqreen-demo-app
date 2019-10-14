@@ -6,7 +6,6 @@
  * This is the list of the known commands and the related handlers
  */
 'use strict';
-const AsyncLock = require('async-lock');
 const Logger = require('../logger');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
@@ -15,11 +14,6 @@ const IpWhitelist = require('../instrumentation/whitelist');
 const Login = require('../backend/login');
 const Fuzzer = require('../fuzzer');
 const Actions = require('../actions/index');
-
-const lock = new AsyncLock();
-
-// enforce reveal commands to be executed sequentially
-const asReveal = (cbk) => lock.acquire('reveal', cbk);
 
 const commands = {
     mock: function () { // For testing purpose
@@ -91,6 +85,7 @@ const commands = {
                 Patch.removeAllCallbacks();
 
                 const Rules = require('../rules'); // load here and not at the beginning of the script to prevent circular import issue
+                require('../rules/rules-callback/libSqreenCB').clearAll();
                 const result = Rules.enforceRuleList(rules, !Features.read().rules_signature);
 
                 if (!result) {
@@ -223,56 +218,15 @@ const commands = {
     },
     reveal_reload: function (params, uuid) {
 
-        return asReveal(() =>
-
-            BackEnd.reveal_runtime(Agent.SESSION_ID())
-                .then((response) => {
-
-                    if (!response.status || !response.version) {
-                        throw new Error('Reveal backend failed to send a runtime.');
-                    }
-                    Logger.INFO(`Reloading reveal runtime (version: ${response.version})`);
-                    const res = Fuzzer.reload(response);
-                    if (!res) {
-                        throw new Error('Runtime reload failed...');
-                    }
-                    return;
-                }));
+        return Fuzzer.reload();
     },
     reveal_start: function (params, uuid) {
 
-        return asReveal(() => {
-
-            if (!Fuzzer.ready()) {
-                return Promise.reject(new Error('Reveal is not ready.'));
-            }
-            return BackEnd.reveal_requests(Agent.SESSION_ID())
-                .then((response) => {
-
-                    if (!response.status) {
-                        throw new Error('Reveal backend failed to send a run.');
-                    }
-                    const runid = Fuzzer.start(response);
-                    if (!runid) {
-                        throw new Error('Reveal failed to start...');
-                    }
-                    return runid;
-                });
-        });
+        return Fuzzer.start();
     },
     reveal_stop: function (params, uuid) {
 
-        return asReveal(() =>
-
-            Fuzzer.stop()
-                .then((res) => {
-
-                    if (!res) {
-                        return Promise.reject(new Error('Reveal failed to stop.'));
-                    }
-                    return Promise.resolve();
-                })
-        );
+        return Fuzzer.stop();
     }
 };
 module.exports = commands;

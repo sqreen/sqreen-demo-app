@@ -6,6 +6,7 @@
  * This script is to be run at startup, therefore synchronous operations are permitted
  */
 'use strict';
+//noinspection Eslint
 const Logger = require('../logger');
 const Path = require('path');
 const Fs = require('fs');

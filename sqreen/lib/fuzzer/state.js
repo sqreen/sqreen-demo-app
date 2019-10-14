@@ -42,23 +42,23 @@ class State {
 
     running() {
 
+        this._state = this.RUNNING;
         // @ts-ignore
         this.emit('running');
-        this._state = this.RUNNING;
     }
 
     terminating() {
 
+        this._state = this.TERMINATING;
         // @ts-ignore
         this.emit('terminating');
-        this._state = this.TERMINATING;
     }
 
     stopped() {
 
+        this._state = this.STOPPED;
         // @ts-ignore
         this.emit('stopped');
-        this._state = this.STOPPED;
     }
 };
 

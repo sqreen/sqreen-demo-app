@@ -38,7 +38,7 @@ const AgentMessage = class {
 
     static initKnownMessages(messageList) {
 
-        for (let message of messageList) {
+        for (const message of messageList) {
             knownMessages.add(message);
         }
     }

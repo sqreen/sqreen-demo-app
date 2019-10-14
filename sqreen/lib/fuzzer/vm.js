@@ -11,24 +11,9 @@ const PROLOGUE = `
     exports = module.exports;
 `;
 
-// Whitelist of modules exposed in sandbox
-const _modules_whitelist = {
-};
-
-
-const SAFE_REQUIRE = function (name) {
-
-    const mod = _modules_whitelist[name];
-    if (mod === undefined) {
-        throw new Error('Unavailable module ' + name);
-    }
-    return mod;
-};
-
-
 const VM = module.exports.VM = class {
     /**
-     * @param {string | undefined} code - A JavaScript code.
+     * @param {string} code - A JavaScript code.
      */
     constructor(code) {
 
@@ -36,17 +21,14 @@ const VM = module.exports.VM = class {
     }
 
     /**
-     * @param {string | undefined} code - A JavaScript code.
+     * @param {string} code - A JavaScript code.
      */
     _init(code) {
 
-        code = code || '';
         const initialContext = {
             exports: null,
             module: { exports: {} },
-            SHARED: {},
-            require: SAFE_REQUIRE,
-            SAFE_REQUIRE
+            SHARED: {}
         };
         this._context = Vm.createContext(initialContext);
         const prolog = VM.createScript(PROLOGUE);
@@ -113,6 +95,7 @@ module.exports.VMBinding = class VMBinding {
      */
     constructor(vm, classname) {
 
+        // $lab:coverage:off$
         if (typeof vm !== 'object' || !vm._context) {
             throw new Error('Invalid VM object!');
         }
@@ -120,6 +103,7 @@ module.exports.VMBinding = class VMBinding {
         if (typeof classname !== 'string' || !vm._context.module.exports.hasOwnProperty(classname)) {
             throw new Error('Invalid class name');
         }
+        // $lab:coverage:on$
         this._vm = vm;
         this._classname = classname;
         const ref = `REF_${this._classname}`;

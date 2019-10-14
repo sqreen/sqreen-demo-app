@@ -4,8 +4,6 @@
  */
 'use strict';
 const NS = require('./ns');
-const Fs = require('fs');
-const Path = require('path');
 
 const FunctionPatcher = require('../functionPatcher');
 
@@ -23,17 +21,6 @@ const holder = {
 FunctionPatcher.patchFunction(holder, 'sqreenMiddleWare', { name: 'sqreen' }, 'express');
 FunctionPatcher.patchFunction(holder, 'inspectOutput', { name: 'sqreen' }, 'express');
 module.exports.sqreenMiddleWare = holder.sqreenMiddleWare;
-
-module.exports.hasCookieParser = function () {
-
-    try {
-        const res = JSON.parse(Fs.readFileSync(Path.join(process.cwd(), 'package.json')).toString());
-        return !!(res.dependencies && res.dependencies['cookie-parser']);
-    }
-    catch (_) {
-        return false;
-    }
-};
 
 module.exports._shimBind = NS._shimBind;
 module.exports._shimRun = NS._shimRun;

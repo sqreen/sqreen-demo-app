@@ -31,7 +31,7 @@ module.exports = class {
         const seconds = this.timestamp.getSeconds();
         let offset = metric.period;
         if (offset > 60) {
-           offset = offset % 60
+            offset = offset % 60;
         }
         const delta = seconds % offset;
         this.timestamp.setSeconds(seconds - delta);
@@ -41,7 +41,7 @@ module.exports = class {
         METRIC_STORE.set(name, this);
     }
 
-    get values () {
+    get values() {
 
         return toReport.filter((x) => x.name === this.metricName);
     }
@@ -74,7 +74,7 @@ module.exports = class {
                 }
             }
             else {
-                toReport.push(payload)
+                toReport.push(payload);
             }
 
             this.currentValue = {};
@@ -159,7 +159,7 @@ module.exports.addBinningObservation = function (name, val, date) {
     }
     else {
         const met = require('./default').enablePerfForRule(name);
-        met.add(val, date)
+        met.add(val, date);
     }
 };
 

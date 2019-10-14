@@ -86,6 +86,7 @@ const ACTION_CALLBACK = {
         const action = { action: ACTION.BLOCK_IP, id };
         if (Array.isArray(ip_cidr_list) === true) {
             ip_cidr_list.forEach((ip_cidr) => {
+
                 flagIPFor(ip_cidr, action, duration);
             });
         }
@@ -104,6 +105,7 @@ const ACTION_CALLBACK = {
         const action = { action: ACTION.REDIRECT_IP, id, url };
         if (Array.isArray(ip_cidr_list) === true) {
             ip_cidr_list.forEach((ip_cidr) => {
+
                 flagIPFor(ip_cidr, action, duration);
             });
         }
@@ -132,7 +134,7 @@ const ACTION_CALLBACK = {
         }
 
         const users = parameters.users;
-        Logger.INFO(`Redirecting user ${JSON.stringify(users)} to ${url} for ${duration} seconds. ${{id}}`);
+        Logger.INFO(`Redirecting user ${JSON.stringify(users)} to ${url} for ${duration} seconds. ${{ id }}`);
         const todo = { users, url, id };
         placeInSetFor(todo, redirectUsers, duration);
         return true;
@@ -186,7 +188,7 @@ module.exports.shouldLetThisGo = function (req, res, ip) {
     }
     if (action.action === ACTION.BLOCK_IP) {
         CBUtils.dropRequest(['', req, res]);
-        report(ACTION.BLOCK_IP, {ip_address: ip}, req, action.id);
+        report(ACTION.BLOCK_IP, { ip_address: ip }, req, action.id);
         ALREADY_RESPONSED_REQUESTS.add(req);
         return false;
     }
@@ -194,7 +196,7 @@ module.exports.shouldLetThisGo = function (req, res, ip) {
     // if (action.action === ACTION.REDIRECT_IP) {
     const target = action.url;
     CBUtils.redirectRequest(['', req, res], target);
-    report(ACTION.REDIRECT_IP, {ip_address: ip}, req, action.id);
+    report(ACTION.REDIRECT_IP, { ip_address: ip }, req, action.id);
     ALREADY_RESPONSED_REQUESTS.add(req);
     return false;
     //}
@@ -234,7 +236,7 @@ module.exports.enforceActionList = function (list) {
         }
         catch (e) {
             require('../exception/index').report(e).catch(() => {});
-            failed = true
+            failed = true;
         }
         if (failed === true) {
             failedList.push(action.action_id);

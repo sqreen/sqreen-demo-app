@@ -309,7 +309,8 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
                     klass: Error.name,
                     message: err.message,
                     infos: {
-                        args: err.args
+                        args: err.args,
+                        waf: err.waf
                     },
                     rule_name: err.ruleName || null,
                     time: new Date(),
@@ -322,6 +323,11 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
             Exception.report(err).catch(() => {});
             return {};
         });
+};
+
+const isRevealRule = function (rule) {
+
+    return !!rule && !!rule.name && rule.name.includes('reveal');
 };
 
 const runCbs = function (list, args, value, selfObject, kind, session, budget, monitBudget) {
@@ -342,13 +348,13 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
             result[i] = {};
             continue;
         }
-        const isRevealRule = list[i].rule.name.includes('reveal');
+        const isReveal = isRevealRule(list[i].rule);
         // skip reveal callbacks for reveal requests
-        if (session && Fuzzer.isRequestReplayed(session.req) && isRevealRule) {
+        if (session && Fuzzer.isRequestReplayed(session.req) && isReveal) {
             result[i] = {};
             continue;
         }
-        if (isRevealRule) {
+        if (isReveal) {
             // FIXME: find another way...
             list[i].method.noBudget = true;
         }
@@ -356,7 +362,7 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
         result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, budget, monitBudget);
         process.__sqreen_cb = false; // remove lock
         // FIXME: remove this hack (include it in rules results)
-        if (isRevealRule) {
+        if (isReveal) {
             result[i].payload = true;
         }
     }

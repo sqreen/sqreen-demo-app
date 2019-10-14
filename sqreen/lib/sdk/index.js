@@ -73,7 +73,7 @@ const extAuthTrack = module.exports.auth_track = function (request, success, rec
 
 
     if (hasReq) {
-        NS.run(()=> {
+        NS.run(() => {
 
             NS.set('req', req);
             NS.set('res', req.__sqreen_res);
@@ -137,7 +137,7 @@ const track = function (event, args, req, internal) {
         throw new TypeError('options.timestamp must be a Date');
     }
 
-    let RR = Record.lazyGet(req);
+    const RR = Record.lazyGet(req);
     if (RR === null) {
         Logger.WARN(`Sqreen could not find current request for event: "${event}".`);
         Logger.WARN('Event will be lost.');
@@ -147,13 +147,13 @@ const track = function (event, args, req, internal) {
     }
 
     if (RR.identity && args.user_identifiers && !Hoek.deepEqual(RR.identity, args.user_identifiers)) {
-        Logger.WARN(`Sqreen.identify Sqreen.track have been called with different user_identifiers values.`);
+        Logger.WARN('Sqreen.identify Sqreen.track have been called with different user_identifiers values.');
     }
 
     const argsAdditionalKeys = Object.keys(args).filter((key) => knownKeys.indexOf(key) < 0);
     if (argsAdditionalKeys.length > 0) {
         Logger.WARN(`Sqreen.track has been called with the following unknown values: ${argsAdditionalKeys.join(', ')}.`);
-        Logger.WARN(`Did you mean to use the 'properties' claim instead?`);
+        Logger.WARN('Did you mean to use the \'properties\' claim instead?');
     }
 
     if (args.properties) {

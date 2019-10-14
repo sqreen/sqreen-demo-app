@@ -1,6 +1,6 @@
 {
   "name": "sqreen",
-  "version": "1.34.0",
+  "version": "1.35.1",
   "main": "index.js",
   "scripts": {
     "test": "lab -cLv -a code -t 100 -R -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
@@ -51,7 +51,7 @@
     "test": "test"
   },
   "optionalDependencies": {
-    "sq-native": "^0.6.0"
+    "sq-native": "0.8.0"
   },
   "dependencies": {
     "async-listener": "^0.6.0",

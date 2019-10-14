@@ -5,6 +5,7 @@
 // @ts-check
 'use strict';
 
+const AsyncLock = require('async-lock');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
 const Logger = require('../logger');
@@ -14,6 +15,11 @@ const Fuzzer = require('./fuzzer');
 const State = require('./state');
 const Signature = require('./signature');
 const METRICTYPE = require('./metrics').METRICTYPE;
+
+const lock = new AsyncLock();
+
+// enforce reveal commands to be executed sequentially
+const lockReveal = (cbk) => lock.acquire('reveal', cbk);
 
 // Send stats every N fuzzed requests
 const sendStatsEvery = 250;
@@ -46,9 +52,9 @@ module.exports.registerServer = function (server) {
  *
  * @returns {boolean} true if fuzzer is ready.
  */
-module.exports.ready = function () {
+const ready = module.exports.ready = function () {
 
-    return !!SERVER && STATE.isStopped();
+    return !!SERVER && !!FUZZER && STATE.isStopped();
 };
 
 /**
@@ -56,12 +62,11 @@ module.exports.ready = function () {
  * @typedef {{ code: string, version: number, flags?: string[], signatures: RuntimeSign[] }} RuntimeInterface
  */
 /**
- * (Re)load the fuzzer code.
+ * Validate and (re)load the runtime.
  *
  * @param {RuntimeInterface} runtime - Reload command parameters.
- * @returns {boolean} True if successful.
  */
-module.exports.reload = function (runtime) {
+const reloadRuntime = function (runtime) {
 
     if (!runtime || !runtime.code) {
         return false;
@@ -81,26 +86,48 @@ module.exports.reload = function (runtime) {
 };
 
 /**
+ * (Re)load the fuzzer code.
+ *
+ * @returns {Promise<undefined>}
+ */
+module.exports.reload = function () {
+
+    return lockReveal(() =>
+
+        BackEnd.reveal_runtime(Agent.SESSION_ID())
+            .then((runtime) => {
+
+                if (!runtime.status || !runtime.version) {
+                    throw new Error('Reveal backend failed to send a runtime.');
+                }
+                // @ts-ignore
+                Logger.INFO(`Reloading reveal runtime (version: ${runtime.version})`);
+                const res = reloadRuntime(runtime);
+                if (!res) {
+                    throw new Error('Runtime reload failed...');
+                }
+                return;
+            }));
+};
+
+/**
  * @typedef {{ engine: { timeout: number, throughput: { batch: number, delay: number } } }} Options
  * @typedef {{ params: { query: {}, form: {} } }} InputRequest
  * @typedef {InputRequest[]} InputRequests
  * @typedef {{ defaults: InputRequest, requests: InputRequests }} Corpus
  * @typedef {{ options: Options, corpus: Corpus }} Run
  */
+
 /**
- * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
- * See `reveal-fuzzer` types for reference.
- *
- * @param {Run} run - A Run object (JSON compatible).
- * @returns {string | undefined} Return a run UUID (or undefined in case of failure).
- */
-module.exports.start = function (run) {
+  * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
+  * See `reveal-fuzzer` types for reference.
+  *
+  * @param {Run} run - A Run object (JSON compatible).
+  * @returns {string | undefined} Return a run UUID (or undefined in case of failure).
+  */
+const startFuzzerSafe = function (run) {
 
     let ret;
-    if (!FUZZER || !STATE.isStopped()) {
-        return;
-    }
-    STATE.running();
     try {
         ret = startFuzzer(run);
     }
@@ -110,6 +137,34 @@ module.exports.start = function (run) {
         }
     }
     return ret;
+};
+
+/**
+ * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
+ * See `reveal-fuzzer` types for reference.
+ *
+ * @returns {Promise<string>} Return a run UUID (or undefined in case of failure).
+ */
+module.exports.start = function () {
+
+    return lockReveal(() => {
+
+        if (!ready()) {
+            return Promise.reject(new Error('Reveal is not ready.'));
+        }
+        return BackEnd.reveal_requests(Agent.SESSION_ID())
+            .then((run) => {
+
+                if (!run.status) {
+                    throw new Error('Reveal backend failed to send a run.');
+                }
+                const runid = startFuzzerSafe(run);
+                if (!runid) {
+                    throw new Error('Reveal failed to start...');
+                }
+                return runid;
+            });
+    });
 };
 
 const shouldPushStats = (fuzzer) => {
@@ -170,35 +225,39 @@ const recordStats = (stats, done) =>
  * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
  * See `reveal-fuzzer` types for reference.
  *
- * @param {Run} run - A Run object (JSON compatible).
+ * @param {object} _run - A Run object (JSON compatible).
  * @returns {string | undefined} Return a run UUID (or undefined in case of failure).
  */
-const startFuzzer = function (run) {
+const startFuzzer = function (_run) {
 
-    if (!run || !run.corpus) {
+    if (!ready()) {
         return;
     }
+
+    // validate inputs
     const vm = new VM.VM(FUZZER);
 
-    const options = Fuzzer.validateOptions(vm, run.options);
-    const requests = Fuzzer.validateRequests(vm, run.corpus.requests);
-    if (!options || !requests) {
+    const run = Fuzzer.validateRun(vm, _run);
+    if (!run) {
         return;
     }
 
-    if (requests.length === 0) {
-        return;
-    }
+    const options = run.options;
 
+    //
+    // register a new run
     const fuzzer = new Fuzzer(vm);
 
     const runID = fuzzer.register(run);
     if (runID === undefined) {
-
         // @ts-ignore
         Logger.ERROR('Reveal failed to register current run.');
         return;
     }
+
+    //
+    // we are now running
+    STATE.running();
 
     const sendStats = (done) => {
 
@@ -220,6 +279,8 @@ const startFuzzer = function (run) {
         }
     };
 
+    // setup event handlers
+    //
     // @ts-ignore
     fuzzer.on('request_new', (req, newreq) => {
 
@@ -268,12 +329,17 @@ const startFuzzer = function (run) {
     // This is very important if we don't want to deadlock the fuzzer
     fuzzer.armTimeout(options.engine.timeout);
 
-    fuzzer.mutateRequests(requests, (origReq, mutatedReqs) => {
+    //
+    // start mutating requests in a (async) loop
+    fuzzer.mutateRequests(run.corpus.requests, (origReq, mutatedReqs) => {
 
         try {
             const n = mutatedReqs.length;
             for (let i = 0; i < n && STATE.isRunning(); ++i) {
                 const mutatedReq = mutatedReqs[i];
+                if (!mutatedReq.params) {
+                    continue;
+                }
                 FakeRequest(SERVER, mutatedReq)
                     .send(mutatedReq.params.form)
                     .query(mutatedReq.params.query)
@@ -322,15 +388,16 @@ const startFuzzer = function (run) {
             Logger.ERROR(`"Failed to replay requests with "${err.message}"`);
         }
     });
+
     return runID;
 };
 
 /**
- * Force stop the fuzzer.
+ * Force stop the fuzzer (async).
  *
  * @returns {Promise<boolean>} True if successful.
  */
-module.exports.stop = function () {
+const stopAsync = function () {
 
     if (!FUZZER || !STATE.isRunning()) {
         // nothing to do
@@ -338,6 +405,7 @@ module.exports.stop = function () {
     }
     return new Promise((resolve, _reject) => {
 
+        // state can have changed due to async events, so let's check it again.
         if (!STATE.isRunning()) {
             return resolve(true);
         }
@@ -345,4 +413,24 @@ module.exports.stop = function () {
         // @ts-ignore
         STATE.once('stopped', () => resolve(true));
     });
+};
+
+/**
+ * Force stop the fuzzer.
+ *
+ * @returns {Promise<undefined>}
+ */
+module.exports.stop = function () {
+
+    return lockReveal(() =>
+
+        stopAsync()
+            .then((res) => {
+
+                if (!res) {
+                    return Promise.reject(new Error('Reveal failed to stop.'));
+                }
+                return Promise.resolve();
+            })
+    );
 };

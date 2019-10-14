@@ -75,10 +75,10 @@ const buildPayload = module.exports._buildPayload = function (deps_signature, pi
     if (!config.app_name) {
         Config.setAppName(app_name);
     }
-    let hasSQNative = false;
+    let libsqreen_version = null;
     try {
-        require('sq-native');
-        hasSQNative = true;
+        const Lib = require('sq-native');
+        libsqreen_version = Lib.getVersion();
     }
     catch (_) {}
 
@@ -109,7 +109,7 @@ const buildPayload = module.exports._buildPayload = function (deps_signature, pi
             heap_stats: V8.getHeapStatistics(),
             custom_substring_ignore: process.env.SQREEN_CUSTOM_PKG_SUBSTRING_IGNORE,
             features: require('../command/features').read(),
-            has_native_module: hasSQNative
+            libsqreen_version
         },
         agent_type: 'nodejs',
         agent_version: Version,
