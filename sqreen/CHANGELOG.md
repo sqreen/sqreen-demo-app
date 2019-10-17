@@ -2,6 +2,32 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.36.0]
+### Added
+
+* url_decode transformer
+* Reveal
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+N/A
+
+### Security
+
+N/A
+
 ## [1.35.1]
 ### Added
 

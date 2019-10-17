@@ -35,6 +35,7 @@ const getCleanSession = function (session) {
 
 const _delimiter = '_._';
 const transformers = {
+    url_decode: decodeURIComponent,
     parse_url: Collector.readURL,
     grade_password: Collector.readPassword,
     flat_keys: function (value) {
