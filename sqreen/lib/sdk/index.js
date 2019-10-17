@@ -8,7 +8,7 @@ const Hoek = require('hoek');
 const PatchFunction = require('../instrumentation/functionPatcher').patchFunction;
 const Record = require('../instrumentation/record');
 const Logger = require('../logger');
-const Fuzzer = require('../fuzzer/fuzzer');
+// const Fuzz = require('../fuzzer');
 const SDK_TYPE = require('../enums/sdk').TYPE;
 
 const MODULE = {
@@ -65,9 +65,11 @@ const extAuthTrack = module.exports.auth_track = function (request, success, rec
         const reqRecord = Record.lazyGet(req);
         reqRecord.user = record;
         // This request has been replayed by the agent, we can skip the log
-        if (Fuzzer.isRequestReplayed(req)) {
+        //$lab:coverage:off$
+        /*if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
+            //$lab:coverage:on$
             return;
-        }
+        }*/
     }
     // else { TODO: context loss ... with agent message? }
 

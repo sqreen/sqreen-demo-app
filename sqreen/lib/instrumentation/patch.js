@@ -19,9 +19,7 @@ const InstrumentationUtils = require('./utils');
 const Feature = require('../command/features');
 const PreConditions = require('./preConditions');
 const Record = require('./record');
-const Fuzzer = require('../fuzzer/fuzzer');
-const FuzzerStats = require('../fuzzer/stats');
-const FuzzerMetricType = require('../fuzzer/metrics').METRICTYPE;
+const Fuzz = require('../fuzzer');
 
 const Budget = require('./budget');
 
@@ -55,7 +53,7 @@ const countCB = function () {
     return !!Feature.read().call_counts_metrics_period;
 };
 
-const report = function (cbResult, err) {
+const report = function (cbResult, err, record) {
 
     // TODO: put in setImmediate ?
     if (!cbResult) {
@@ -67,11 +65,12 @@ const report = function (cbResult, err) {
     const session = cbResult.originalSession || cbResult.session || {};
 
     const req = session.req;
-    if (Fuzzer.isRequestReplayed(req)) {
-        FuzzerStats.updateRequestMetric(req, 'exceptions.attacks', 1, FuzzerMetricType.Sum);
+    //$lab:coverage:off$
+    if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
+        //$lab:coverage:on$
+        Fuzz.stats.updateRequestMetric(req, 'exceptions.attacks', 1, Fuzz.metrics.METRICTYPE.SUM);
     }
-    let record;
-    if (req !== undefined && req.__sqreen_uuid !== undefined && (record = Record.STORE.get(req)) !== undefined) {
+    if (record !== null) {
         const rule = cbResult.rule;
         const ruleName = rule.name;
         record.attack({
@@ -120,9 +119,8 @@ const getRecord = function (cbResult) {
     return null;
 };
 
-const observe = function (cbResult, date) {
+const observe = function (cbResult, date, record) {
 
-    const record = getRecord(cbResult); // TODO: do this once per cb
     if (record !== null) {
         record.observe(cbResult.observations, date);
         return;
@@ -131,16 +129,11 @@ const observe = function (cbResult, date) {
     Metrics.addObservations(observations, date);
 };
 
-const writeDataPoints = function (cbResult, rule, payload, date) {
+const writeDataPoints = function (cbResult, rule, date, record) {
 
-    const record = getRecord(cbResult); // TODO: do this once per cb
     const DataPoint = require('../data_point/index').DataPoint;
     const dataPointList = cbResult.data_points.map((item) => new DataPoint(DataPoint.KIND.RULE, rule.rulesPack, rule.name, item, date));
     if (record !== null) {
-        // force body to be included in the report
-        if (!!payload) {
-            record.reportPayload = true;
-        }
         record.pushDataPoints(dataPointList);
         return null;
     }
@@ -156,15 +149,25 @@ const performRecordAndObservation = function (resultList) {
     try {
         for (let i = 0; i < resultList.length; ++i) {
             const result = resultList[i];
+            let record;
             if (result.record) {
-                report(result, err);
+                record = getRecord(result);
+                report(result, err, record);
             }
 
             if (result.observations) {
-                observe(result, date);
+                record = record || getRecord(result);
+                observe(result, date, record);
             }
             if (result.data_points) {
-                writeDataPoints(result, result.rule, result.payload, date);
+                record = record || getRecord(result);
+                writeDataPoints(result, result.rule, date, record);
+            }
+            if (result.payload) {
+                record = record || getRecord(result);
+                if (record) {
+                    record.reportPayload = true;
+                }
             }
         }
     }
@@ -299,8 +302,17 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
 
             const req = session && session.req;
             // for now, skip exceptions triggered by the fuzzer
-            if (Fuzzer.isRequestReplayed(req)) {
-                FuzzerStats.updateRequestMetric(req, 'exceptions.failed_rules', 1, FuzzerMetricType.Sum);
+            //$lab:coverage:off$
+            if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
+                //$lab:coverage:on$
+                try {
+                    Fuzz.stats.updateRequestMetric(req, 'exceptions.failed_rules', 1, Fuzz.metrics.METRICTYPE.SUM);
+                }
+                catch (er) {
+                    //$lab:coverage:off$
+                    Exception.report(er).catch(() => {});
+                    //$lab:coverage:on$
+                }
                 return {};
             }
             let record;
@@ -325,13 +337,10 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
         });
 };
 
-const isRevealRule = function (rule) {
-
-    return !!rule && !!rule.name && rule.name.includes('reveal');
-};
-
 const runCbs = function (list, args, value, selfObject, kind, session, budget, monitBudget) {
 
+    let actualBudget = budget;
+    let actualMoniBudget = monitBudget;
     if (session && session.req && session.req._sqreen_ip_whitelist) {
         return [];
     }
@@ -348,36 +357,44 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
             result[i] = {};
             continue;
         }
-        const isReveal = isRevealRule(list[i].rule);
+        const isReveal = list[i].rule && list[i].rule.purpose === 'reveal'; // TODO: have a global reveal state to quick path the reveal checks
         // skip reveal callbacks for reveal requests
-        if (session && Fuzzer.isRequestReplayed(session.req) && isReveal) {
+        //$lab:coverage:off$
+        if (session !== undefined && session !== null && Fuzz.hasFuzzer() === true && Fuzz.fuzzer.isRequestReplayed(session.req) === true && isReveal === true) {
+            //$lab:coverage:on$
             result[i] = {};
             continue;
         }
-        if (isReveal) {
-            // FIXME: find another way...
-            list[i].method.noBudget = true;
+        if (isReveal === true) { // for reveal actions, let's have an infinite budget
+            actualBudget = Budget.INFINITY;
+            actualMoniBudget = Budget.INFINITY;
         }
         process.__sqreen_cb = true; // place a lock: two callbacks cannot run at the same time
-        result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, budget, monitBudget);
+        result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, actualBudget, actualMoniBudget);
         process.__sqreen_cb = false; // remove lock
-        // FIXME: remove this hack (include it in rules results)
-        if (isReveal) {
+        if (isReveal === true && result[i].data_points !== undefined) {
             result[i].payload = true;
         }
     }
 
     // setImmediate(() => {
 
-    if (session) {
-        // fuzzer activity is only reported internally
-        if (Fuzzer.isRequestReplayed(session.req)) {
-            FuzzerStats.recordBacktrace(session.req);
-            FuzzerStats.recordMarker(session.req, list);
+    // fuzzer activity is only reported internally
+    //$lab:coverage:off$
+    if (session !== undefined && session !== null && Fuzz.hasFuzzer() === true && Fuzz.fuzzer.isRequestReplayed(session.req) === true) {
+        //$lab:coverage:on$
+        try {
+            Fuzz.stats.recordBacktrace(session.req);
+            Fuzz.stats.recordMarker(session.req, list);
         }
-        else {
-            logExec(list, kind);
+        catch (e) {
+            //$lab:coverage:off$
+            Exception.report(e).catch(() => {});
+            //$lab:coverage:on$
         }
+    }
+    else {
+        logExec(list, kind);
     }
     // });
     return result;
@@ -654,6 +671,7 @@ const logExec = function (cbList, kind) {
 };
 
 module.exports = Patch;
+module.exports._performRecordAndObservation = performRecordAndObservation;
 module.exports._observe = observe;
 module.exports._runCbs = runCbs;
 module.exports._report = report;

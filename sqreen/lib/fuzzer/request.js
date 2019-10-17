@@ -14,10 +14,12 @@ const Default           = require('./default');
 class FakeSocket {
     constructor(options = {}) {
 
+        //$lab:coverage:off$
         this.address = options.addr || Default.addr;
         this.remoteAddress = options.remoteAddr || Default.remoteAddr;
         this.remotePort = options.port || Default.port;
         this.encrypted = options.encrypted || false;
+        //$lab:coverage:on$
         this.writable = false;
     }
 
@@ -53,6 +55,7 @@ class FakeMessage extends HTTP.IncomingMessage {
     constructor(options = {}) {
 
         super(undefined);
+        //$lab:coverage:off$
         this.method         = (options.method || Default.method).toUpperCase();
         if (options.protocol && typeof options.protocol === 'string') {
             options.protocol = options.protocol.trim().split(':').splice(0, 1)[0] + ':';
@@ -67,13 +70,16 @@ class FakeMessage extends HTTP.IncomingMessage {
         this.cert           = options.cert;
         this.key            = options.key;
         this.httpVersion    = options.version || Default.version;
+        //$lab:coverage:on$
         this.httpVersionMajor = this.httpVersion.split('.')[0];
         this.httpVersionMinor = this.httpVersion.split('.')[1];
-        this.connection     = new FakeSocket(options);
-        this.socket         = new FakeSocket(options);
+        const socket        = new FakeSocket(options);
+        this.connection     = socket;
+        this.socket         = socket;
         this.headers        = {};
         this._inputLen      = 0;
         this._hasDataSource = false;
+        //$lab:coverage:off$
         if (options.headers) {
             for (const name in options.headers) {
                 const value = options.headers[name];
@@ -82,10 +88,13 @@ class FakeMessage extends HTTP.IncomingMessage {
                 }
             }
         }
+        //$lab:coverage:on$
         // Those are mandatory for Sqreen reporting
+        //$lab:coverage:off$
         this.headers['user-agent'] = this.headers['user-agent'] || Default.agent;
         this.headers.host = this.headers.host || Default.host;
         this.headers.referer = this.headers.referer || 'https://reveal.sqreen.com';
+        //$lab:coverage:on$
     }
 
     flushHeaders() {
@@ -93,7 +102,9 @@ class FakeMessage extends HTTP.IncomingMessage {
 
     setHeader(name, value) {
 
+        //$lab:coverage:off$
         if (!this.ended && !this.body) {
+            //$lab:coverage:on$
             this.headers[name.toLowerCase()] = value;
         }
     }
@@ -103,6 +114,7 @@ class FakeMessage extends HTTP.IncomingMessage {
         return this.headers[name.toLowerCase()];
     }
 
+    //$lab:coverage:off$
     removeHeader(name) {
 
         if (!this.ended && !this.body) {
@@ -149,11 +161,9 @@ class FakeMessage extends HTTP.IncomingMessage {
         }
 
         if (typeof chunk === 'function') {
-
             [callback, chunk] = [chunk, null];
         }
         else if (typeof encoding === 'function') {
-
             [callback, encoding] = [encoding, null];
         }
 
@@ -172,6 +182,7 @@ class FakeMessage extends HTTP.IncomingMessage {
             setImmediate(callback);
         }
     }
+    //$lab:coverage:on$
 
     setContentLengthHeader(length) {
 
@@ -182,17 +193,23 @@ class FakeMessage extends HTTP.IncomingMessage {
 
         const self = this;
 
+        //$lab:coverage:off$
         if (self._hasDataSource || self.body) {
             return;
         }
+        //$lab:coverage:on$
         const srcIsNull = src === null;
+        //$lab:coverage:off$
         const srcIsBuffer = !srcIsNull && Buffer.isBuffer(src);
         if (srcIsNull || typeof src === 'string' || srcIsBuffer) {
+            //$lab:coverage:on$
             self._hasDataSource = true;
 
             let length = 0;
+            //$lab:coverage:off$
             if (!srcIsNull) {
                 if (!srcIsBuffer) {
+                    //$lab:coverage:on$
                     src = Buffer.from(src);
                 }
                 length = src.length;
@@ -202,7 +219,9 @@ class FakeMessage extends HTTP.IncomingMessage {
 
             return process.nextTick(() => {
 
+                //$lab:coverage:off$
                 if (!srcIsNull) {
+                    //$lab:coverage:on$
                     self.push(src);
                 }
 
@@ -256,33 +275,45 @@ class FakeResponse extends HTTP.ServerResponse {
             return;
         }
 
+        //$lab:coverage:off$
         if (typeof chunk === 'function') {
             [callback, chunk] = [chunk, null];
         }
         else if (typeof encoding === 'function') {
             [callback, encoding] = [encoding, null];
         }
+        //$lab:coverage:on$
 
+        //$lab:coverage:off$
         if (chunk) {
             this._outputData = this._outputData || [];
+            //$lab:coverage:on$
             this._outputData.push([chunk, encoding]);
+            //$lab:coverage:off$
             this._outputLen += (chunk || '').length;
+            //$lab:coverage:on$
         }
         // TODO: understand how we could have headers is our fake answer
         // without breaking the agent when our fake request is blocked...
         // this.flushHeaders();
 
         // Handle output
+        //$lab:coverage:off$
         if (this._outputLen !== 0) {
+            //$lab:coverage:on$
             let output = '';
             for (const key in this._outputData) {
+                //$lab:coverage:off$
                 output += (this._outputData[key] || '').toString();
+                //$lab:coverage:on$
             }
             this.output.push(output);
             this.outputSize += output.length;
         }
 
+        //$lab:coverage:off$
         if (typeof callback === 'function') {
+            //$lab:coverage:on$
             setImmediate(callback);
         }
 
@@ -297,17 +328,21 @@ class FakeResponse extends HTTP.ServerResponse {
 const end = HTTP.ServerResponse.prototype.end;
 HTTP.ServerResponse.prototype.end = function () {
 
+    //$lab:coverage:off$
     // @ts-ignore
     if (this._fake) {
         return FakeResponse.prototype.end.apply(this, arguments);
     }
     return end.apply(this, arguments);
+    //$lab:coverage:on$
 };
 
 class FakeRequest {
     constructor(server, options = {}) {
 
+        //$lab:coverage:off$
         options.url = options.url || '/';
+        //$lab:coverage:on$
         this.options = options;
         this._server = server;
         this._req = new FakeMessage(options);
@@ -315,6 +350,7 @@ class FakeRequest {
         return this;
     }
 
+    //$lab:coverage:off$
     get(url) {
 
         this._req.url = url;
@@ -334,6 +370,7 @@ class FakeRequest {
         this._req.setHeader(key, value);
         return this;
     }
+    //$lab:coverage:on$
 
     type(type) {
 
@@ -346,7 +383,9 @@ class FakeRequest {
         if (!query) {
             return this;
         }
+        //$lab:coverage:off$
         if (query !== null && typeof query === 'object') {
+            //$lab:coverage:on$
             query = Querystring.stringify(query);
         }
         this._query = query;
@@ -359,12 +398,16 @@ class FakeRequest {
             return this;
         }
         let type = 'text/plain';
+        //$lab:coverage:off$
         if (data !== null && typeof data === 'object') {
+            //$lab:coverage:on$
             type = 'application/json';
             data = JSON.stringify(data);
         }
         this._data = data;
+        //$lab:coverage:off$
         if (!this._req.getHeader('content-type')) {
+            //$lab:coverage:on$
             this.type(type);
         }
         return this;
@@ -373,7 +416,9 @@ class FakeRequest {
     custom(callback) {
 
         const self = this;
+        //$lab:coverage:off$
         if (typeof callback === 'function') {
+            //$lab:coverage:on$
             callback(self._req, self._res);
         }
         return this;
@@ -392,13 +437,17 @@ class FakeRequest {
             this._req.setSource(this._data);
         }
         const self = this;
+        //$lab:coverage:off$
         if (typeof callback === 'function') {
+            //$lab:coverage:on$
             self._res.on('finish', () => {
 
                 callback(self._req, self._res);
             });
         }
+        //$lab:coverage:off$
         if (self._server) {
+            //$lab:coverage:on$
             self._server.emit('request', self._req, self._res);
         }
     }

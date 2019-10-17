@@ -12,8 +12,16 @@ const Agent = require('../agent');
 const Features = require('./features');
 const IpWhitelist = require('../instrumentation/whitelist');
 const Login = require('../backend/login');
-const Fuzzer = require('../fuzzer');
 const Actions = require('../actions/index');
+const Fuzz = require('../fuzzer');
+
+const callReveal = function (action) {
+
+    if (Fuzz.hasFuzzer()) {
+        return Fuzz.main[action]();
+    }
+    return Promise.reject(new Error('Reveal is only supported for Node.js >= 6.0.0'));
+};
 
 const commands = {
     mock: function () { // For testing purpose
@@ -216,17 +224,17 @@ const commands = {
             });
         });
     },
-    reveal_reload: function (params, uuid) {
+    reveal_reload: function () {
 
-        return Fuzzer.reload();
+        return callReveal('reload');
     },
-    reveal_start: function (params, uuid) {
+    reveal_start: function () {
 
-        return Fuzzer.start();
+        return callReveal('start');
     },
-    reveal_stop: function (params, uuid) {
+    reveal_stop: function () {
 
-        return Fuzzer.stop();
+        return callReveal('stop');
     }
 };
 module.exports = commands;

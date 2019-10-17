@@ -3,7 +3,6 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
-const Fuzzer = require('../../fuzzer');
 const UuidV4 = require('uuid/v4');
 const OnFinished = require('on-finished');
 const Record = require('../record');
@@ -12,6 +11,7 @@ const Whitelist = require('../whitelist');
 const Utils = require('../../util');
 const Actions = require('../../actions/index');
 const Budget = require('../budget');
+const Fuzz = require('../../fuzzer');
 
 const isEmitter = module.exports.isEmitter = module.exports._isEmitter = function (emitter) {
 
@@ -85,7 +85,11 @@ module.exports.enable = function (module, identity) {
     Server.prototype.addListener = function (type, listener) {
 
         if (type === 'request') {
-            Fuzzer.registerServer(this);
+            //$lab:coverage:off$
+            if (Fuzz.hasFuzzer()) {
+                //$lab:coverage:on$
+                Fuzz.main.registerServer(this);
+            }
 
             return addListener.apply(this, [type, function (req, res) {
 

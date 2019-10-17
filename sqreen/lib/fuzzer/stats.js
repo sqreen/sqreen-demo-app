@@ -31,6 +31,7 @@ class ReqStats extends Vm.VMBinding {
         this._bindVM();
     }
 
+    // $lab:coverage:off$
     /**
      * Record a backtrace as a trace.
      *
@@ -113,6 +114,7 @@ class ReqStats extends Vm.VMBinding {
 
         return this._runInContext(this._api_recordSymbols)(syms);
     }
+    // $lab:coverage:on$
 
     _bindVM() {
 
@@ -147,9 +149,11 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      */
     prepareRequest(req, mutated) {
 
+        // $lab:coverage:off$
         if (!req) {
             return false;
         }
+        // $lab:coverage:on$
         const reqstats = new ReqStats(this._vm);
         // @ts-ignore
         req.__sqreen_fuzzstats = reqstats;
@@ -166,21 +170,25 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
     finalizeRequest(req, mutated) {
 
         const reqstats = FuzzStats.getReqStats(req);
+        // $lab:coverage:off$
         if (reqstats === null) {
             return false;
         }
-
+        // $lab:coverage:on$
         const ret = this._finalizeRequest(mutated, reqstats.shadow);
+        // $lab:coverage:off$
         if (!ret) {
             return false;
         }
         if (ret.unique) {
+            // $lab:coverage:on$
             // @ts-ignore
             this.emit('request_new', req, ret.hash);
         }
         return ret.success;
     }
 
+    // $lab:coverage:off$
     /**
      * Reset fuzzer statistics.
      *
@@ -285,7 +293,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
             return false;
         }
         for (const entry of rules) {
-            const rule = entry.rule;
+            const rule = entry.rule || {};
             let record = false;
             if (rule.attack_type === 'sql_injection') {
                 this.updateRequestMetric(req, 'markers.sqlops', 1, METRICTYPE.SUM);
@@ -320,6 +328,7 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
 
         return reqstats.updateMetric(key, value, type);
     }
+    // $lab:coverage:on$
 
     /**
      * Get a {FuzzStats} object associated to a request.
@@ -327,10 +336,12 @@ const FuzzStats = module.exports = class extends Vm.VMBinding {
      * @param {IncomingMessage} req - An HTTP request.
      */
     static getReqStats(req) {
+        // $lab:coverage:off$
         // @ts-ignore
         if (!req.__sqreen_fuzzstats) {
             return null;
         }
+        // $lab:coverage:on$
         // @ts-ignore
         return req.__sqreen_fuzzstats;
     }

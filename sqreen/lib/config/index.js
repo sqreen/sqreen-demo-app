@@ -33,7 +33,7 @@ const configSchema = Joi.object().keys({
     app_name: Joi.string().default(''),
     strip_sensitive_keys: Joi.array().items(Joi.string()).default(DEFAULT.strip_sensitive_keys),
     strip_sentitive_regex: Joi.array().items(Joi.object().type(RegExp)).default(DEFAULT.strip_sentitive_regex),
-    heartbeat_delay: Joi.number().positive().max(120).default(0)
+    heartbeat_delay: Joi.number().positive().max(120).default(DEFAULT.heartbeat_delay)
 });
 
 let agentConfig;
@@ -209,7 +209,7 @@ const readConfig = function (from) {
         config.http_proxy = process.env.SQREEN_HTTP_PROXY;
     }
     if (process.env.SQREEN_HEARTBEAT_DELAY) {
-        config.heartbeat_delay = process.env.SQREEN_HEARTBEAT_DELAY;
+        config.heartbeat_delay = parseInt(process.env.SQREEN_HEARTBEAT_DELAY, 10);
     }
     if (process.env.SQREEN_IP_HEADER) {
         config.ip_header = process.env.SQREEN_IP_HEADER;

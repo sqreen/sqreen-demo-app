@@ -21,6 +21,7 @@ module.exports = {
     strip_sensitive_data: true,
     app_root: process.cwd(),
     strip_sensitive_keys: ['password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey', 'access_token'],
-    strip_sentitive_regex: [/^(?:\d[ -]*?){13,16}$/]
+    strip_sentitive_regex: [/^(?:\d[ -]*?){13,16}$/],
+    heartbeat_delay: 0
 };
 

@@ -69,6 +69,7 @@ const Record = class {
         if (this.perfMon === true) {
             this.timeStart = process.hrtime();
         }
+        this.isRevealReplayed = !!req.__sqreen_replayed;
     }
 
     attack(atk, rpid) {

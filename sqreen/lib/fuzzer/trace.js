@@ -20,19 +20,26 @@ const Path = require('path');
  */
 const getStackSymbols = function (frames, filter) {
 
+    if (!Array.isArray(frames)) {
+        return [];
+    }
     /** @type Syms */
     const symbols = [];
     const hasFilter = typeof filter === 'function';
-    for (let i = 0; frames && i < frames.length; ++i) {
+    for (let i = 0; i < frames.length; ++i) {
         const frame = frames[i];
         const script = frame.getScriptNameOrSourceURL();
+        // $lab:coverage:off$
         if (!script || (hasFilter && filter(script))) {
             continue;
         }
+        // $lab:coverage:on$
         const funcname = getFrameFuncName(frame);
+        // $lab:coverage:off$
         if (!funcname) {
             continue;
         }
+        // $lab:coverage:on$
         const scriptpath = Path.dirname(script);
         const scriptfile = Path.basename(script);
         const line = frame.getLineNumber();
@@ -78,11 +85,13 @@ const getFrameFuncName = function (frame) {
 
     const mtype = frame.getTypeName();
     const mname = frame.getFunctionName();
+    // $lab:coverage:off$
     if (!mtype && !mname) {
         return;
     }
     const name = mname !== null ? mname : '<anonymous>';
     return mtype !== null ? `${mtype}.${name}` : `${name}`;
+    // $lab:coverage:on$
 };
 
 module.exports = {

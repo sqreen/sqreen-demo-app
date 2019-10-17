@@ -263,14 +263,14 @@ module.exports.data_point = function (session_id, payload) {
     return LoggedRp(getPostOptions(Routes.data_point, { 'x-session-key': session_id }, payload), 'post data_point');
 };
 
-module.exports.reveal_runtime = function (session_id, payload) {
+module.exports.reveal_runtime = function (session_id, query) {
 
-    return LoggedRp(getGetOptions(Routes.reveal_runtime, { 'x-session-key': session_id }, payload), 'get reveal/runtime');
+    return LoggedRp(getGetOptions(Routes.reveal_runtime, { 'x-session-key': session_id }, query), 'get reveal/runtime');
 };
 
-module.exports.reveal_requests = function (session_id, payload) {
+module.exports.reveal_requests = function (session_id, query) {
 
-    return LoggedRp(getGetOptions(Routes.reveal_requests, { 'x-session-key': session_id }, payload), 'get reveal/requests');
+    return LoggedRp(getGetOptions(Routes.reveal_requests, { 'x-session-key': session_id }, query), 'get reveal/requests');
 };
 
 module.exports.reveal_post_requests = function (session_id, payload) {

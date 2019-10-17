@@ -22,7 +22,7 @@ const SIGNTYPE = {
 };
 
 /**
- * @typedef { import('./index').RuntimeInterface } RuntimeInterface
+ * @typedef { import('./main').RuntimeInterface } RuntimeInterface
  */
 
 /**
