@@ -4,10 +4,8 @@
 
 <template>
     <div>
-        <!--<AppStatus />-->
         <dual-view-container>
             <router-view></router-view>
-            <!--<router-view class="view two" name="side"></router-view>-->
         </dual-view-container>
     </div>
 </template>

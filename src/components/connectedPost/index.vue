@@ -3,9 +3,9 @@
 */
 
 <template>
-    <div>
-        <post v-for="data in vuexApiData" :noTitleLink="true" :post="data" />
-    </div>
+  <div>
+    <post v-for="(data, key) in vuexApiData" :noTitleLink="true" :key="key" :post="data" />
+  </div>
 </template>
 
 <script>
