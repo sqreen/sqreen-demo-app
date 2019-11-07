@@ -41,7 +41,7 @@ npm run start
 ```
 
 
-# Developement
+# Development
 
 Sqreen-demo-app is made of an express node backend and a vuejs app front.
 
