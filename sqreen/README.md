@@ -24,10 +24,17 @@ You will need first to [signup](https://my.sqreen.com/signup) to get a token.
 
 Then, where your `package.json` file stands, run:
 
-```sh
-# Node.js 4 and higher
-$ npm install --save sqreen
-$ echo '{ "token": "your token" }' > sqreen.json
+```shell script
+npm install --save sqreen
+```
+And
+```shell script
+cat > sqreen.json <<EOF
+{
+  "app_name": "YOUR_APPLICATION_NAME",
+  "token": "YOUR_SQREEN_TOKEN"
+}
+EOF
 ```
 
 At the top of the main module of your app, add:

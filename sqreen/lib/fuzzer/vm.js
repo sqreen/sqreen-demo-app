@@ -13,7 +13,7 @@ const PROLOGUE = `
 
 const VM = module.exports.VM = class {
     /**
-     * @param {string} code - A JavaScript code.
+     * @param {string | Buffer} code - A JavaScript code.
      */
     constructor(code) {
 
@@ -21,7 +21,7 @@ const VM = module.exports.VM = class {
     }
 
     /**
-     * @param {string} code - A JavaScript code.
+     * @param {string | Buffer} code - A JavaScript code.
      */
     _init(code) {
 
@@ -38,7 +38,7 @@ const VM = module.exports.VM = class {
     }
 
     /**
-     * @param {string} code - A JavaScript code.
+     * @param {string | Buffer} code - A JavaScript code.
      * @returns {Vm.Script}
      */
     static createScript(code) {
@@ -78,85 +78,11 @@ const VM = module.exports.VM = class {
     }
 
     /**
-     * @param {string} classname
      * @param {string} name
      * @returns {Vm.Script}
      */
-    static exportStaticAPI(classname, name) {
+    static importAPI(name) {
 
-        return VM.createScript(`SHARED.API_RESULT = module.exports.${classname}.${name}.apply(module.exports.${classname}, SHARED.API_ARGS);`);
-    }
-};
-
-module.exports.VMBinding = class VMBinding {
-    /**
-     * @param {VM} vm - A VM instance.
-     * @param {string} classname - Name of the class to be binded.
-     */
-    constructor(vm, classname) {
-
-        // $lab:coverage:off$
-        if (typeof vm !== 'object' || !vm._context) {
-            throw new Error('Invalid VM object!');
-        }
-
-        if (typeof classname !== 'string' || !vm._context.module.exports.hasOwnProperty(classname)) {
-            throw new Error('Invalid class name');
-        }
-        // $lab:coverage:on$
-        this._vm = vm;
-        this._classname = classname;
-        const ref = `REF_${this._classname}`;
-        this._vm._context.SHARED[ref] = null;
-        this._vm._context.SHARED.API_ARGS = [null].concat([].slice.call(arguments, 2));
-        const prolog = VM.createScript(`SHARED.${ref} = new (Function.prototype.bind.apply(module.exports.${this._classname}, SHARED.API_ARGS));`);
-        prolog.runInContext(this._vm._context);
-        this._shadow = this._vm._context.SHARED[ref];
-        this._vm._context.SHARED.API_ARGS = null;
-        delete this._vm._context.SHARED[ref];
-    }
-
-    /**
-     * Returns the reference to the underlaying shadow instance.
-     *
-     * @returns {object}
-     */
-    get shadow() {
-
-        return this._shadow;
-    }
-
-    /**
-    * @param {Vm.Script} script - A precompiled script.
-    * @returns {function}
-    */
-    _runInContext(script) {
-
-        const self = this;
-        return function () {
-
-            self._vm._context.SHARED.API_SELF = self._shadow;
-            const result = self._vm.runInContext(script).apply(self._vm, arguments);
-            self._vm._context.SHARED.API_SELF = null;
-            return result;
-        };
-    }
-
-    /**
-     * @param {string} name
-     * @returns {Vm.Script}
-     */
-    _exportAPI(name) {
-
-        return VM.createScript(`SHARED.API_RESULT = SHARED.API_SELF.${name}.apply(SHARED.API_SELF, SHARED.API_ARGS);`);
-    }
-
-    /**
-     * @param {string} name
-     * @returns {Vm.Script}
-     */
-    _exportGetter(name) {
-
-        return VM.createScript(`SHARED.API_RESULT = SHARED.API_SELF.${name};`);
+        return VM.createScript(`SHARED.API_RESULT = module.exports.${name}.apply(null, SHARED.API_ARGS);`);
     }
 };

@@ -5,53 +5,122 @@
 // @ts-check
 'use strict';
 
+const METRICTYPE = require('./metrics').METRICTYPE;
 const Events = require('./events');
-const Vm = require('./vm');
-const FuzzStats = require('./stats');
+const FuzzerRequest = require('./request');
 const FuzzUtils = require('./utils');
 
 /**
  * @typedef { import('http').IncomingMessage } IncomingMessage
- * @typedef { import('./main').Options } Options
- * @typedef { import('./main').Run } Run
- * @typedef { import('./main').InputRequest } InputRequest
- * @typedef { import('./main').InputRequests } InputRequests
- * @typedef { import('./stats').MetricKey } MetricKey
- * @typedef { import('./stats').MetricType } MetricType
  *
- * @typedef {{ params: { query: {}, form: {} } }} Request - A request object.
- * @typedef { Request[] } Requests
+ * @typedef {import('./reveal').Run} Run
+ * @typedef {import('./reveal').Options} Options
+ * @typedef {import('./reveal').InputRequest} InputRequest
+ * @typedef {import('./reveal').Request} Request
+ * @typedef {import('./reveal').MetricKey} MetricKey
+ * @typedef {import('./reveal').MetricType} MetricType
+ * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
+ *
+ * @typedef {import('./request')} FuzzerRequest
+ *
+ * @typedef {import('./runtime').RuntimeV1} Runtime
  */
 
-const Fuzzer = module.exports = class extends Vm.VMBinding {
+const Fuzzer = module.exports = class {
     /**
-     * @param {Vm.VM} vm - A VM instance.
+     * @param {Runtime} runtime - A Runtime instance.
+     * @param {Run} run - A run instance.
      */
-    constructor(vm) {
+    constructor(runtime, run) {
 
-        const stats = new FuzzStats(vm);
-        super(vm, 'Fuzzer', stats.shadow);
+        this._runtime = runtime;
+        this._id = this._runtime.initFuzzer(run);
+
         this._fuzzedreqs = 0;
-        this._stats = stats;
         this._mutationsdone = false;
         this._handledreqs = 0;
         this._timeout = null;
         // @ts-ignore
         this._initListener();
-        // @ts-ignore
-        this._stats.on('request_new', this._onNewRequest.bind(this));
-        this._bindVM();
     }
 
     /**
-     * @param {Vm.VM} vm - A VM instance.
-     * @param {object | undefined} run - Raw fuzzer run.
-     * @returns {Run}
+     * @param {Runtime} runtime - A Runtime instance.
+     * @param {object} run - Raw fuzzer run.
+     * @returns {Run | null}
      */
-    static validateRun(vm, run) {
+    static validateRun(runtime, run) {
 
-        return Vm.VM.runInVMContext(vm, this._api_validateRun)(run);
+        return runtime.validateRun(run);
     }
+
+    /**
+     * Check if fuzzer is a valid instance
+     *
+     * @returns {boolean} True if fuzzer is a valid instance.
+     */
+    isValid() {
+
+        return this._id !== null;
+    }
+
+    //$lab:coverage:off$
+    /**
+     * Get current fuzzer options.
+     *
+     * @returns {Options} Fuzzer options.
+     */
+    get options() {
+
+        return this._runtime.getOptions(this._id);
+    }
+    //$lab:coverage:on$
+
+    /**
+     * Get current run ID.
+     *
+     * @returns {string | null} RunID if successful, null if not.
+     */
+    get runid() {
+
+        return this._runtime.getRunID(this._id);
+    }
+
+    /**
+     * Get run statistics.
+     *
+     * @returns {object | undefined} Stats if successful, undefined if not.
+     */
+    get runstats() {
+
+        return this._runtime.getRunStats(this._id);
+    }
+
+    /**
+     * Retrieve the number of requests fuzzed.
+     *
+     * @returns {number} Fuzzed requests.
+     */
+    get fuzzed() {
+
+        return this._fuzzedreqs;
+    }
+
+    //$lab:coverage:off$
+    /**
+     * Terminate a fuzzer.
+     *
+     * Warning: the associated fuzzer resources will be released, and request reference will be consumed.
+     *
+     * @returns {boolean}
+     */
+    terminate(request) {
+
+        const res = this._runtime.terminateFuzzer(this._id);
+        this._id = null;
+        return res;
+    }
+    //$lab:coverage:on$
 
     /**
      * Prepare a request (real or fake) before replaying it.
@@ -61,7 +130,7 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
      * @param {Request} mutated - The mutated input.
      * @returns {boolean} True if request is being replayed by us.
      */
-    prepareRequest(req, orig, mutated) {
+    initRequest(req, orig, mutated) {
 
         // $lab:coverage:off$
         if (!req || Fuzzer.isRequestReplayed(req)) {
@@ -70,9 +139,14 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
         // $lab:coverage:on$
         // @ts-ignore
         req.__sqreen_replayed = true;
+        const fuzzerrequest = new FuzzerRequest(this, mutated);
+        // $lab:coverage:off$
+        if (!fuzzerrequest.isValid()) {
+            return false;
+        }
+        // $lab:coverage:on$
         // @ts-ignore
-        req.__sqreen_fuzzinput = [orig, mutated];
-        this._stats.prepareRequest(req, mutated);
+        req.__sqreen_fuzzerrequest = fuzzerrequest;
         this._handledreqs++;
         return true;
     }
@@ -92,90 +166,53 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
             return false;
         }
         // $lab:coverage:on$
-        this._stats.finalizeRequest(req, mutated);
+        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        // $lab:coverage:off$
+        if (fuzzerrequest === null) {
+            return false;
+        }
+        // $lab:coverage:on$
+        const ret = fuzzerrequest.finalize(mutated);
+        fuzzerrequest.terminate();
+        // $lab:coverage:off$
+        if (!ret) {
+            return false;
+        }
+        if (ret.unique) {
+            this._onNewRequest(req, orig, mutated, ret);
+        }
         this._handledreqs--;
         this._onRequestDone(req);
         if (this._mutationsdone && this._handledreqs <= 0) {
             this._onDone();
         }
-    }
-
-    //$lab:coverage:off$
-    /**
-     * Get current fuzzer options.
-     *
-     * @returns {Options} Fuzzer options.
-     */
-    get options() {
-
-        return this._runInContext(this._getter_options)();
-    }
-
-    /**
-     * Get current run ID.
-     *
-     * @returns {string | undefined} RunID if successful, undefined if not.
-     */
-    get runid() {
-
-        return this._runInContext(this._getter_runid)();
-    }
-
-    /**
-     * Get fuzzer statistics.
-     *
-     * @returns {object | undefined} Stats if successful, undefined if not.
-     */
-    get stats() {
-
-        return this._runInContext(this._getter_stats)();
-    }
-    //$lab:coverage:on$
-
-    /**
-     * Get run statistics.
-     *
-     * @returns {object | undefined} RunStats if successful, undefined if not.
-     */
-    get runstats() {
-
-        return this._runInContext(this._getter_runstats)();
-    }
-
-    /**
-     * Retrieve the number of requests fuzzed.
-     *
-     * @returns {number} Fuzzed requests.
-     */
-    get fuzzed() {
-
-        return this._fuzzedreqs;
+        return ret.success;
     }
 
     /**
      * Mutate an input request.
      *
      * @param {InputRequest} request - An input request object.
-     * @param {number} [mutations] - Total number of mutations (override options)
-     * @returns {Requests} An array of mutated requests
+     * @param {number} mutations - Total number of mutations (override options)
+     * @returns {Request[]} An array of mutated requests
      */
-    mutateRequest(request, mutations) {
+    mutateInputRequest(request, mutations) {
 
-        return this._runInContext(this._api_mutateRequest)(request, mutations);
+        return this._runtime.mutateInputRequest(this._id, request, mutations);
     }
 
     /**
-     * @typedef {(original: InputRequest, mutated: Requests) => boolean} HandleMutatedRequest
+     * @typedef {(original: InputRequest, mutated: Request[]) => boolean} HandleMutatedRequest
      */
     /**
      * Mutate input requests (in a primitive async way...).
      *
-     * @param {InputRequests} requests - An input request object.
+     * @param {InputRequest[]} requests - An input request object.
      * @param {HandleMutatedRequest} cbk - A callback handling the mutated request.
      * @param {{ delay?: number, batchlen?: number }} [options] - Some useful options.
      * @returns {Promise}
      */
-    mutateRequests(requests, cbk, options) {
+    mutateInputRequests(requests, cbk, options) {
 
         // $lab:coverage:off$
         options = options || {};
@@ -203,7 +240,7 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
                     // $lab:coverage:on$
                     FuzzUtils.asyncForEach(requests, (request, i, next) => {
 
-                        const mutatedReqs = this.mutateRequest(request, mutations[i]);
+                        const mutatedReqs = this.mutateInputRequest(request, mutations[i]);
                         // $lab:coverage:off$
                         if (!mutatedReqs || !mutatedReqs.length) {
                             return done();
@@ -227,49 +264,40 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
     };
 
     /**
+     * Update an original input request based on mutated one values.
+     *
+     * @param {InputRequest} orig - Original input request.
+     * @param {Partial<Request>} mutated - An associated mutated version of the input request.
+     * @param {FuzzRequestResult} result - Fuzzing result (coming from the related `finalizeRequest` call).
+     * @returns {InputRequest}
+     */
+    updateInputRequest(orig, mutated, result) {
+
+        return this._runtime.updateInputRequest(this._id, orig, mutated, result);
+    }
+
+    /**
      * Compute an array with a balanced number of mutations for each request.
      *
      * @returns {Array} An array of mutations count, one for each request.
      */
     mutationsPerRequest() {
 
-        return this._runInContext(this._api_mutationsPerRequest)();
+        return this._runtime.mutationsPerRequest(this._id);
     };
-
-    /**
-     * Register input requests into the fuzzer.
-     *
-     * @param {Run} run - An input Run (corpus / options).
-     * @returns {string | undefined} RunID if successful, undefined if not.
-     */
-    register(run) {
-
-        return this._runInContext(this._api_register)(run);
-    }
-
-    /**
-     * Reset fuzzer (unregister current run, resets stats).
-     *
-     * @returns {boolean} true if successful.
-     */
-    reset() {
-
-        // $lab:coverage:off$
-        return this._runInContext(this._api_reset)();
-        // $lab:coverage:on$
-    }
 
     /**
      * Update / add a fuzzer metric
      *
      * @param {MetricKey} key - A metric key (ex: 'requests.fuzzed').
      * @param {any} value - Update metric using this value.
-     * @param {MetricType} [type] - A metric type (optional on existing metrics).
+     * @param {MetricType?} [type] - A metric type (optional on existing metrics).
      * @returns {boolean}
      */
     updateMetric(key, value, type) {
 
-        return this._runInContext(this._api_updateMetric)(key, value, type);
+        // TODO: add cache
+        return this.updateEndpointMetric(undefined, key, value, type);
     }
 
     /**
@@ -278,15 +306,97 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
      * @param {string} endpoint - A path identifying an endpoint.
      * @param {MetricKey} key - A metric key (ex: 'requests.fuzzed').
      * @param {any} value - Update metric using this value.
-     * @param {MetricType} [type] - A metric type (optional on existing metrics).
+     * @param {MetricType?} [type] - A metric type (optional on existing metrics).
      * @returns {boolean}
      */
     updateEndpointMetric(endpoint, key, value, type) {
 
         // $lab:coverage:off$
-        return this._runInContext(this._api_updateEndpointMetric)(endpoint, key, value, type);
+        // TODO: add cache
+        return this._runtime.updateMetrics(this._id, [{ endpoint, key, value, type }]);
         // $lab:coverage:on$
     }
+
+    // $lab:coverage:off$
+    /**
+     * Record a trace.
+     *
+     * @param {IncomingMessage} req - An HTTP request.
+     * @param {string} trace - A 'trace' (anything).
+     * @returns {boolean}
+     */
+    static recordTrace(req, trace) {
+
+        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        if (fuzzerrequest === null) {
+            return false;
+        }
+        return fuzzerrequest.recordTrace(trace);
+    }
+
+    /**
+     * Record a stacktrace as a trace.
+     *
+     * @param {IncomingMessage} req - An HTTP request.
+     * @returns {boolean}
+     */
+    static recordStackTrace(req) {
+
+        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        if (fuzzerrequest === null) {
+            return false;
+        }
+        return fuzzerrequest.recordStackTrace();
+    }
+
+    /**
+     * Record markers based on evaluated rules
+     *
+     * @param {IncomingMessage} req - An HTTP request.
+     * @param {Array} rules - A list of rules being evaluated.
+     * @returns {boolean}
+     */
+    static recordMarker(req, rules) {
+
+        if (!req || !rules) {
+            return false;
+        }
+        for (const entry of rules) {
+            const rule = entry.rule || {};
+            let record = false;
+            if (rule.attack_type === 'sql_injection') {
+                this.updateRequestMetric(req, 'markers.sqlops', 1, METRICTYPE.SUM);
+                record = true;
+            }
+            else if (rule.attack_type === 'lfi') {
+                this.updateRequestMetric(req, 'markers.fileops', 1, METRICTYPE.SUM);
+                record = true;
+            }
+            if (record) {
+                this.updateRequestMetric(req, 'markers.rules', rule.name, METRICTYPE.COLLECT);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Update / add a request metric
+     *
+     * @param {IncomingMessage} req - An HTTP request.
+     * @param {MetricKey} key - A metric key (ex: 'requests.fuzzed').
+     * @param {any} value - Update metric using this value.
+     * @param {MetricType?} [type] - A metric type (optional on existing metrics).
+     * @returns {boolean}
+     */
+    static updateRequestMetric(req, key, value, type) {
+
+        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        if (fuzzerrequest === null) {
+            return false;
+        }
+        return fuzzerrequest.updateRequestMetric(key, value, type);
+    }
+    // $lab:coverage:on$
 
     /**
      * Test if a request is being replayed.
@@ -302,24 +412,22 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
         // $lab:coverage:on$
     };
 
-    _bindVM() {
-
-        this._api_mutateRequest = this._exportAPI('mutateRequest');
-        this._api_mutationsPerRequest = this._exportAPI('mutationsPerRequest');
-        this._api_updateMetric = this._exportAPI('updateMetric');
-        this._api_updateEndpointMetric = this._exportAPI('updateEndpointMetric');
-        this._api_updateRequest = this._exportAPI('updateRequest');
-        this._api_register = this._exportAPI('register');
-        this._api_reset = this._exportAPI('reset');
-        this._getter_options = this._exportGetter('options');
-        this._getter_stats = this._exportGetter('stats');
-        this._getter_runstats = this._exportGetter('runstats');
-        this._getter_runid = this._exportGetter('runid');
-    }
-
-    static _bindVMStatic() {
-
-        this._api_validateRun = Vm.VM.exportStaticAPI('Fuzzer', 'validateRun');
+    /**
+     * Get a {FuzzerRequest} object associated to a request.
+     *
+     * @param {IncomingMessage | null} req - An HTTP request.
+     *
+     * @return {FuzzerRequest}
+     */
+    static getFuzzerRequest(req) {
+        // $lab:coverage:off$
+        // @ts-ignore
+        if (!req || !req.__sqreen_fuzzerrequest) {
+            return null;
+        }
+        // $lab:coverage:on$
+        // @ts-ignore
+        return req.__sqreen_fuzzerrequest;
     }
 
     /**
@@ -346,19 +454,6 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
         }
     }
 
-    /**
-     * Update an original input request based on mutated one values.
-     *
-     * @param {InputRequest} orig - Original input request.
-     * @param {Request} mutated - A mutated input request.
-     * @param {number | undefined} hash - Assign a hash to the new request.
-     * @returns {InputRequest}
-     */
-    _updateRequest(orig, mutated, hash) {
-
-        return this._runInContext(this._api_updateRequest)(orig, mutated, hash);
-    }
-
     _onRequestDone(req) {
 
         this._fuzzedreqs++;
@@ -366,11 +461,9 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
         this.emit('request_done', req);
     }
 
-    _onNewRequest(req, hash) {
+    _onNewRequest(req, orig, mutated, res) {
 
-        // @ts-ignore
-        const [orig, mutated] = req.__sqreen_fuzzinput;
-        const updated = this._updateRequest(orig, mutated, hash);
+        const updated = this.updateInputRequest(orig, mutated, res);
         // @ts-ignore
         this.emit('request_new', req, updated);
     }
@@ -395,7 +488,7 @@ const Fuzzer = module.exports = class extends Vm.VMBinding {
             this.removeAllListeners();
         }
     }
+
 };
-Fuzzer._bindVMStatic();
 
 Events.makeEventEmitter(Fuzzer);

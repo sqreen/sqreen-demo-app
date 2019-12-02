@@ -68,7 +68,7 @@ const report = function (cbResult, err, record) {
     //$lab:coverage:off$
     if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
         //$lab:coverage:on$
-        Fuzz.stats.updateRequestMetric(req, 'exceptions.attacks', 1, Fuzz.metrics.METRICTYPE.SUM);
+        Fuzz.fuzzer.updateRequestMetric(req, 'exceptions.attacks', 1, Fuzz.metrics.METRICTYPE.SUM);
     }
     if (record !== null) {
         const rule = cbResult.rule;
@@ -306,7 +306,7 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
             if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
                 //$lab:coverage:on$
                 try {
-                    Fuzz.stats.updateRequestMetric(req, 'exceptions.failed_rules', 1, Fuzz.metrics.METRICTYPE.SUM);
+                    Fuzz.fuzzer.updateRequestMetric(req, 'exceptions.failed_rules', 1, Fuzz.metrics.METRICTYPE.SUM);
                 }
                 catch (er) {
                     //$lab:coverage:off$
@@ -384,8 +384,8 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
     if (session !== undefined && session !== null && Fuzz.hasFuzzer() === true && Fuzz.fuzzer.isRequestReplayed(session.req) === true) {
         //$lab:coverage:on$
         try {
-            Fuzz.stats.recordBacktrace(session.req);
-            Fuzz.stats.recordMarker(session.req, list);
+            Fuzz.fuzzer.recordStackTrace(session.req);
+            Fuzz.fuzzer.recordMarker(session.req, list);
         }
         catch (e) {
             //$lab:coverage:off$

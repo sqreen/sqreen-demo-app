@@ -2,6 +2,83 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.37.1]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* in app WAF performance and safety
+
+### Security
+
+N/A
+
+## [1.37.0]
+### Added
+
+N/A
+
+### Changed
+
+* vendored dependencies (Hoek, Boom, Wreck)
+* Move from joi to joi-browser
+* `url_decode` transformer is fail safe 
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+N/A
+
+### Security
+
+N/A
+
+## [1.36.1]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* updated https-proxy-agent to version 3
+
+### Security
+
+N/A
+
 ## [1.36.0]
 ### Added
 

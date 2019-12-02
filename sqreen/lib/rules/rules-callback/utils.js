@@ -5,6 +5,9 @@
 'use strict';
 const Http = require('http');
 
+const MAX_STRINGS_SIZE = 4 * 1024;
+const MAX_RECURSIVE_DEPTH = 15;
+const MAX_PROP_PER_OBJECT = 150;
 
 const response = {
     answer: function (args) {
@@ -176,4 +179,173 @@ const starter = function (obj) {
 };
 
 module.exports.asJson = starter;
+
+
+const miniCopy = function (obj, ignore) {
+
+    if (Array.isArray(obj) === true) {
+        return obj.slice(0, MAX_PROP_PER_OBJECT);
+    }
+    const res = {};
+    const keys = Object.keys(obj);
+    const ln = Math.min(keys.length, MAX_PROP_PER_OBJECT);
+    for (let i = 0; i < ln; ++i) {
+        if (ignore.indexOf(keys[i]) > -1) {
+            continue;
+        }
+        res[keys[i]] = obj[keys[i]];
+    }
+    return res;
+};
+// TODO: limit size of keys too
+const limitObject = module.exports.limitObject = function (obj, depth) {
+
+    if (depth === undefined) {
+        depth = 0;
+    }
+
+    if (depth >= MAX_RECURSIVE_DEPTH) {
+        return null;
+    }
+    if (obj === null) {
+        return null;
+    }
+
+    if (typeof obj === 'string' && obj.length >= MAX_STRINGS_SIZE) {
+        return obj.slice(0, MAX_STRINGS_SIZE);
+    }
+
+    if (typeof obj === 'object') {
+        const keys = Object.keys(obj);
+        const changed = {};
+        const del = [];
+        for (let i = 0; i < keys.length; ++i) {
+            const key = keys[i];
+            if (key.length > MAX_STRINGS_SIZE) {
+                del.push(key);
+                continue;
+            }
+            const item = obj[key];
+            const res = limitObject(item, depth + 1);
+            if (res === item) {
+                continue;
+            }
+            changed[key] = res;
+        }
+        const changedKeys = Object.keys(changed);
+        if (changedKeys.length > 0 || del.length > 0) {
+            // we need to clone the current object
+            const newObj = miniCopy(obj, del);
+            Object.assign(newObj, changed);
+            return newObj;
+        }
+    }
+
+    return obj;
+};
+
+/**
+ * concat without new array creation
+ * @param a1
+ * @param a2
+ */
+const pushAll = function (a1, a2) {
+
+    for (let i = 0; i < a2.length; ++i) {
+        a1.push(a2[i]);
+    }
+};
+
+/**
+ * get flat keys in the limit of size defined
+ * @param item
+ * @param depth
+ * @return {[]|Array}
+ */
+const flat_keys = module.exports.flat_keys = function (item, depth) {
+
+    if (depth === undefined) {
+        depth = 0;
+    }
+    if (depth >= MAX_RECURSIVE_DEPTH) {
+        return [];
+    }
+
+    if (typeof item !== 'object') {
+        return [];
+    }
+
+    if (item === null) {
+        return [];
+    }
+    const result = [];
+    const keys = Object.keys(item);
+    const ln = Math.min(MAX_PROP_PER_OBJECT, keys.length);
+    for (let i = 0; i < ln; ++i) {
+        const k = keys[i];
+        if (k.length <= MAX_STRINGS_SIZE) {
+            result.push(k);
+        }
+        else {
+            result.push(k.slice(0, MAX_STRINGS_SIZE));
+        }
+        if (typeof item[k] === 'object') {
+            pushAll(result, flat_keys(item[k], depth + 1));
+        }
+        if (result.length > MAX_PROP_PER_OBJECT) {
+            return result.slice(0, MAX_PROP_PER_OBJECT);
+        }
+    }
+    return result;
+};
+
+/**
+ * glat values within limits
+ * @param item
+ * @param depth
+ * @return {[]|Array}
+ */
+const flat_values = module.exports.flat_values = function (item, depth) {
+
+    if (depth === undefined) {
+        depth = 0;
+    }
+
+    if (depth >= MAX_RECURSIVE_DEPTH) {
+        return [];
+    }
+
+    if (typeof item !== 'object') {
+        return [item];
+    }
+
+    if (item === null) {
+        return [];
+    }
+    const result = [];
+    const keys = Object.keys(item);
+    const ln = Math.min(MAX_PROP_PER_OBJECT, keys.length);
+    for (let i = 0; i < ln; ++i) {
+        const k = keys[i];
+        const val = item[k];
+        if (typeof val === 'object') {
+            pushAll(result, flat_values(item[k], depth + 1));
+        }
+        else if (typeof val === 'string') {
+            if (val.length <= MAX_STRINGS_SIZE) {
+                result.push(val);
+            }
+            else {
+                result.push(val.slice(0, MAX_STRINGS_SIZE));
+            }
+        }
+        else {
+            result.push(val);
+        }
+        if (result.length > MAX_PROP_PER_OBJECT) {
+            return result.slice(0, MAX_PROP_PER_OBJECT);
+        }
+    }
+    return result;
+};
 

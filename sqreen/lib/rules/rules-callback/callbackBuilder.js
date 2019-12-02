@@ -4,13 +4,12 @@
  */
 'use strict';
 const Runner = require('./../runner');
-const Hoek = require('hoek');
+const Hoek = require('../../../vendor/hoek/lib/index');
 const Exception = require('../../exception/index');
 const Logger = require('../../logger');
 const AsJson = require('./utils').asJson;
 const Util = require('./utils'); // TODO: explain this to CTO
 const MainUtils = require('../../util');
-const Flat = require('flat');
 const Collector = require('../../conf_collector/index.js');
 
 const Vm = require('vm');
@@ -33,46 +32,20 @@ const getCleanSession = function (session) {
     return session;
 };
 
-const _delimiter = '_._';
-const transformers = {
-    url_decode: decodeURIComponent,
+const transformers = module.exports.transformers = {
+    url_decode: (x) => {
+
+        try {
+            return decodeURIComponent(x); // FIXME: one day maybe? I am not fan of the silent behavior
+        }
+        catch (_) {
+            return x;
+        }
+    },
     parse_url: Collector.readURL,
     grade_password: Collector.readPassword,
-    flat_keys: function (value) {
-
-        value = AsJson(value);
-
-        if (typeof value !== 'object') {
-            return [value];
-        }
-
-        const flat = Flat(value, { delimiter: _delimiter, maxDepth: 10 });
-        const keys = Object.keys(flat);
-        let result = [];
-
-        for (let i = 0; i < keys.length; ++i) {
-            result = result.concat(keys[i].split(_delimiter));
-        }
-
-        return result;
-    },
-    flat_values: function (value) {
-
-        value = AsJson(value);
-
-        if (typeof value !== 'object') {
-            return [value];
-        }
-
-        const flat = Flat(value, { maxDepth: 10 });
-        const keys = Object.keys(flat);
-        const result = [];
-        for (let i = 0; i < keys.length; ++i) {
-            result.push(flat[keys[i]]);
-        }
-
-        return result;
-    }
+    flat_keys: Util.flat_keys,
+    flat_values: Util.flat_values
 };
 
 const getTransformer = function (key) {
@@ -182,19 +155,19 @@ const Run = class {
                 '#.cwd': () => process.cwd(),
                 '#.request_params': () => {
 
-                    request_params.body = session.body;
                     request_params.query = session.query;
                     request_params.headers = session.headers;
                     request_params.cookies = session.cookies;
                     request_params.url = session.url;
                     request_params.params = session.params;
+                    request_params.body = session.body;
                     return request_params;
                 },
                 '#.filtered_request_params': () => {
 
-                    filtered_request_params.body = session.body;
                     filtered_request_params.query = session.query;
                     filtered_request_params.params = session.params;
+                    filtered_request_params.body = session.body;
                     return filtered_request_params;
                 }
             };
@@ -216,7 +189,7 @@ const Run = class {
                 Object.assign(session.cookies, session.__sqreen_lookup.hapi.state);
             }
 
-            if (masterItem in sqreenMatches) {
+            if (masterItem in sqreenMatches) { // TODO: optimization
 
                 const transformer = getTransformer(key);
 

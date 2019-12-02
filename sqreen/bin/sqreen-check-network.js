@@ -5,7 +5,7 @@
  */
 'use strict';
 const Commander = require('commander');
-const Joi = require('joi');
+const Joi = require('joi-browser');
 
 const Logger = require('../lib/logger');
 Logger.transports.console.silent = true;  // turns logs off

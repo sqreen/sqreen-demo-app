@@ -1,6 +1,6 @@
 {
   "name": "sqreen",
-  "version": "1.36.0",
+  "version": "1.37.1",
   "main": "index.js",
   "scripts": {
     "test": "lab -cLv -a code -t 100 -R -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
@@ -11,7 +11,7 @@
     "test-ci-win": "npm i --no-save hapi@16.6 express@4 supertest@3.3 passport-local @hapi/hoek && lab -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
     "posttest-ci": "npm version && rm -r *.logs",
     "outdated": "npm outdated",
-    "preversion": "node preversion.js && npm test",
+    "preversion": "node preversion.js",
     "install-tests": "npm i --no-save hapi@16.6 express@4 supertest@3.3 passport-local @hapi/hoek"
   },
   "author": "sqreen",
@@ -62,13 +62,12 @@
     "escape-html": "^1.0.3",
     "express-list-endpoints": "4.0.1",
     "flat": "^4.0.0",
-    "hoek": "^4.2.1",
     "http-proxy-agent": "^2.1.0",
-    "https-proxy-agent": "^2.2.1",
+    "https-proxy-agent": "^3.0.0",
     "ip": "^1.1.4",
     "ip-range-check": "0.0.2",
     "ip-router": "^1.0.0",
-    "joi": "^10.6.0",
+    "joi-browser": "^10.6.1",
     "mkdirp": "^0.5.1",
     "on-finished": "^2.3.0",
     "recursive-readdir": "^2.1.0",
@@ -76,7 +75,6 @@
     "shimmer": "^1.2.0",
     "uuid": "^3.1.0",
     "winston": "^2.2.0",
-    "wreck": "^12.5.1",
     "zxcvbn": "^4.4.2"
   },
   "dependencies_details": {
@@ -87,7 +85,6 @@
     "emitter-listener": "(Meta)observability for EventEmitters.",
     "escape-html": "html-escape",
     "flat": "flatten an object",
-    "hoek": "util lib",
     "http-proxy-agent": "proxy support",
     "https-proxy-agent": "proxy support",
     "ip": "ip address related tool",

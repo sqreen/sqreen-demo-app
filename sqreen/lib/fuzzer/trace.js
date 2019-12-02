@@ -9,10 +9,11 @@ const Path = require('path');
 
 /**
  * @typedef {object} CallSite
- * @typedef {{scriptpath: string, scriptfile: string, funcname: string, line: number}} Sym
- * @typedef {Sym[]} Syms
  * @typedef {(scriptpath: string) => boolean} FrameFilter
+ *
+ * @typedef {import('./reveal').Sym} Sym
  */
+
 /**
  * @param {CallSite[]} frames - A list of v8 CallSite.
  * @param {FrameFilter | undefined} [filter] - An optional callback filtering frames based on script path.
@@ -23,7 +24,7 @@ const getStackSymbols = function (frames, filter) {
     if (!Array.isArray(frames)) {
         return [];
     }
-    /** @type Syms */
+    /** @type Sym[] */
     const symbols = [];
     const hasFilter = typeof filter === 'function';
     for (let i = 0; i < frames.length; ++i) {
@@ -34,9 +35,9 @@ const getStackSymbols = function (frames, filter) {
             continue;
         }
         // $lab:coverage:on$
-        const funcname = getFrameFuncName(frame);
+        const name = getFrameFuncName(frame);
         // $lab:coverage:off$
-        if (!funcname) {
+        if (!name) {
             continue;
         }
         // $lab:coverage:on$
@@ -46,7 +47,7 @@ const getStackSymbols = function (frames, filter) {
         symbols.push({
             scriptpath,
             scriptfile,
-            funcname,
+            name,
             line
         });
     }

@@ -9,7 +9,7 @@ const Url = require('url');
 const HttpsProxyAgent = require('https-proxy-agent');
 const HttpProxyAgent = require('http-proxy-agent');
 
-const Wreck = require('wreck').defaults({
+const Wreck = require('../../vendor/wreck/lib/index').defaults({
     timeout: 60000,
     json: true
 });

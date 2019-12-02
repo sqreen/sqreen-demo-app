@@ -21,7 +21,6 @@ if (canLoadReveal) {
     HOLDER.main = require('./main');
     HOLDER.fuzzer = require('./fuzzer');
     HOLDER.metrics  = require('./metrics');
-    HOLDER.stats  = require('./stats');
 }
 
 module.exports = HOLDER;

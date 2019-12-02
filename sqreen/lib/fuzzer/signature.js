@@ -9,6 +9,11 @@ const Logger = require('../logger');
 const Crypto = require('crypto');
 const Assert = require('assert');
 
+/**
+ * @typedef {import('./reveal').Runtime} Runtime
+ * @typedef {import('./reveal').RuntimeSignType} RuntimeSignType
+ */
+
 const PUBLIC_KEY_ECC = `-----BEGIN PUBLIC KEY-----
 MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEX0Vn8RT8N7zuI2a8SvoeQ4aAhBJX/xvI
 bwkvYXaqv2vta5Edk4T7ge36XJNCwaojWwewxC+LsV9Ir9RIgXMfMg==
@@ -16,18 +21,13 @@ bwkvYXaqv2vta5Edk4T7ge36XJNCwaojWwewxC+LsV9Ir9RIgXMfMg==
 `;
 
 const SIGNTYPE = {
-    UNKOWN: 0,
     RSA: 1,
     ECC: 2
 };
 
 /**
- * @typedef { import('./main').RuntimeInterface } RuntimeInterface
- */
-
-/**
- * @param {RuntimeInterface} runtime - A reveal runtime object.
- * @param {number} [signType] - A signature type.
+ * @param {Runtime} runtime - A reveal runtime object.
+ * @param {RuntimeSignType} [signType] - A signature type.
  * @returns {{payload: string, signature: string}}
  */
 const getNormalizedPayloadAndSignature = module.exports._getNormalizedPayload = function (runtime, signType) {
@@ -48,7 +48,7 @@ const getNormalizedPayloadAndSignature = module.exports._getNormalizedPayload = 
 };
 
 /**
- * @param {RuntimeInterface} runtime - A reveal runtime object.
+ * @param {Runtime} runtime - A reveal runtime object.
  * @returns boolean - True if signature has been successfully verified.
  */
 module.exports.verifyRuntimeSignature = function (runtime) {

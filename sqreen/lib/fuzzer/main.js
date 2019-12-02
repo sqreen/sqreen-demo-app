@@ -5,16 +5,25 @@
 // @ts-check
 'use strict';
 
+/**
+ * @typedef {import('./reveal').Runtime} Runtime
+ * @typedef {import('./reveal').Run} Run
+ * @typedef {import('./reveal').Options} Options
+ */
+
 const AsyncLock = require('async-lock');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
 const Logger = require('../logger');
-const FakeRequest = require('./request');
-const VM = require('./vm');
+const FakeRequest = require('./fakerequest');
+const RuntimeV1 = require('./runtime').RuntimeV1;
 const Fuzzer = require('./fuzzer');
 const State = require('./state');
 const Signature = require('./signature');
 const METRICTYPE = require('./metrics').METRICTYPE;
+
+// reveal public interface version implemented by the agent
+const INTERFACE = 1;
 
 const lock = new AsyncLock();
 
@@ -64,13 +73,9 @@ const ready = module.exports.ready = function () {
 };
 
 /**
- * @typedef {{ type: number, value: string }} RuntimeSign
- * @typedef {{ code: string, version: number, flags?: string[], signatures: RuntimeSign[] }} RuntimeInterface
- */
-/**
  * Validate and (re)load the runtime.
  *
- * @param {RuntimeInterface} runtime - Reload command parameters.
+ * @param {Runtime} runtime - Reload command parameters.
  */
 const reloadRuntime = function (runtime) {
 
@@ -102,7 +107,7 @@ module.exports.reload = function () {
 
     return lockReveal(() =>
 
-        BackEnd.reveal_runtime(Agent.SESSION_ID())
+        BackEnd.reveal_runtime(Agent.SESSION_ID(), { interface: INTERFACE })
             .then((runtime) => {
 
                 if (!runtime.status || !runtime.version) {
@@ -117,14 +122,6 @@ module.exports.reload = function () {
                 return;
             }));
 };
-
-/**
- * @typedef {{ engine: { timeout: number, throughput: { batch: number, delay: number } } }} Options
- * @typedef {{ params: { query: {}, form: {} } }} InputRequest
- * @typedef {InputRequest[]} InputRequests
- * @typedef {{ defaults: InputRequest, requests: InputRequests }} Corpus
- * @typedef {{ options: Options, corpus: Corpus }} Run
- */
 
 /**
   * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
@@ -239,10 +236,10 @@ const recordStats = (stats, done) =>
  * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
  * See `reveal-fuzzer` types for reference.
  *
- * @param {object} _run - A Run object (JSON compatible).
+ * @param {object} rawrun - A Run object (JSON compatible).
  * @returns {string | undefined} Return a run UUID (or undefined in case of failure).
  */
-const startFuzzer = function (_run) {
+const startFuzzer = function (rawrun) {
 
     // $lab:coverage:off$
     if (!ready()) {
@@ -251,9 +248,9 @@ const startFuzzer = function (_run) {
     // $lab:coverage:on$
 
     // validate inputs
-    const vm = new VM.VM(FUZZER);
+    const runtime = new RuntimeV1(FUZZER);
 
-    const run = Fuzzer.validateRun(vm, _run);
+    const run = Fuzzer.validateRun(runtime, rawrun);
     // $lab:coverage:off$
     if (!run) {
         return;
@@ -263,14 +260,13 @@ const startFuzzer = function (_run) {
 
     //
     // register a new run
-    const fuzzer = new Fuzzer(vm);
-
-    const runID = fuzzer.register(run);
-    if (runID === undefined) {
+    const fuzzer = new Fuzzer(runtime, run);
+    if (!fuzzer.isValid()) {
         // @ts-ignore
-        Logger.ERROR('Reveal failed to register current run.');
+        Logger.ERROR('Reveal failed to init fuzzer with current run.');
         return;
     }
+    const runID = fuzzer.runid;
 
     //
     // we are now running
@@ -354,7 +350,7 @@ const startFuzzer = function (_run) {
 
     //
     // start mutating requests in a (async) loop
-    fuzzer.mutateRequests(run.corpus.requests, (origReq, mutatedReqs) => {
+    fuzzer.mutateInputRequests(run.corpus.requests, (origReq, mutatedReqs) => {
 
         try {
             const n = mutatedReqs.length;
@@ -370,7 +366,7 @@ const startFuzzer = function (_run) {
                     .query(mutatedReq.params.query)
                     .custom((req, res) => {
 
-                        fuzzer.prepareRequest(req, origReq, mutatedReq);
+                        fuzzer.initRequest(req, origReq, mutatedReq);
                     })
                     .end((req, res) => {
 

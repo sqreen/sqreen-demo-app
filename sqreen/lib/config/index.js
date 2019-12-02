@@ -7,7 +7,7 @@
  */
 'use strict';
 const Logger = require('../logger');
-const Joi = require('joi');
+const Joi = require('joi-browser');
 const Fs = require('fs');
 const Path = require('path');
 

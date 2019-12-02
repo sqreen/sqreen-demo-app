@@ -3,7 +3,7 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
-const Hoek = require('hoek');
+const Hoek = require('../../vendor/hoek/lib/index');
 const Config = require('../config/index');
 
 const pick = function (headers, toPick) {

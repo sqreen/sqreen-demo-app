@@ -4,7 +4,7 @@
  */
 'use strict';
 const Assert = require('assert');
-const Hoek = require('hoek');
+const Hoek = require('../../../vendor/hoek/lib/index');
 const Precondition = require('../../instrumentation/preConditions');
 const Dpoint = require('../../data_point');
 
