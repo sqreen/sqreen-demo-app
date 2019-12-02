@@ -64,7 +64,7 @@ class FakeMessage extends HTTP.IncomingMessage {
         const [host, port]  = (options.host || options.hostname || Default.host).split(':');
         this.host           = host;
         this.port           = options.port || port || (protocol === 'https:' ? 443 : 80);
-        this.url            = options.url || Default.url;
+        this.url            = options.path || Default.path;
         this.auth           = options.auth;
         this.agent          = options.agent || (protocol === 'https:' ? HTTPS.globalAgent : HTTP.globalAgent);
         this.cert           = options.cert;
@@ -341,7 +341,7 @@ class FakeRequest {
     constructor(server, options = {}) {
 
         //$lab:coverage:off$
-        options.url = options.url || '/';
+        options.path = options.path || '/';
         //$lab:coverage:on$
         this.options = options;
         this._server = server;
@@ -351,16 +351,16 @@ class FakeRequest {
     }
 
     //$lab:coverage:off$
-    get(url) {
+    get(path) {
 
-        this._req.url = url;
+        this._req.url = path;
         this._req.method = 'GET';
         return this;
     }
 
-    post(url) {
+    post(path) {
 
-        this._req.url = url;
+        this._req.url = path;
         this._req.method = 'POST';
         return this;
     }

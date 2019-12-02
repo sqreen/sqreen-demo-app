@@ -6,7 +6,7 @@
 
 module.exports = {
     method: 'GET',
-    url: '/',
+    path: '/',
     host: 'localhost',
     protocol: 'http:',
     port: 80,
