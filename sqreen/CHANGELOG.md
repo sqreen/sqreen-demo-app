@@ -2,6 +2,31 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.37.2]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* Express endpoint detection works with sibling middlewares
+
+### Security
+
+N/A
+
 ## [1.37.1]
 ### Added
 

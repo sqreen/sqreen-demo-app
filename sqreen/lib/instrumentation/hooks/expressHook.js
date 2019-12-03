@@ -41,6 +41,8 @@ module.exports = function (identity, module) {
                 return origUse.apply(this, arguments);
             }
 
+            this.__mountKey = this.__mountKey || { };
+
             //$lab:coverage:off$
             if (Array.isArray(this.stack)) {
                 //$lab:coverage:on$
@@ -53,6 +55,7 @@ module.exports = function (identity, module) {
                         if (layer && layer.regexp && !layer.regexp.fast_slash) {
                             //$lab:coverage:on$
                             layer.__mountpath = str;
+                            layer.__parentMountKey = this.__mountKey;
                         }
                     }
                 }
@@ -81,7 +84,16 @@ module.exports = function (identity, module) {
 
                 // TODO: test with exception handler!
                 try {
+
+                    if (req.__lastPath !== undefined && req.__lastPath.parent !== undefined && req.__lastPath.parent === layer.__parentMountKey) { // the two layers are siblings, they have the same parent, let's remove the previous one
+                        //$lab:coverage:off$
+                        const r0 = req.__route === undefined ? '' : req.__route;
+                        //$lab:coverage:on$
+                        req.__route = r0.slice(0, -1 * req.__lastPath.addedPath.length);
+                    }
+
                     req.__route = (req.__route || '') + (layer.__mountpath || '');
+                    req.__lastPath = { parent: layer.__parentMountKey, addedPath: layer.__mountpath || '' };
                 }
                 catch (_) {}
 
