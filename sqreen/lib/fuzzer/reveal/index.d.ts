@@ -214,6 +214,14 @@ export interface StackTrace {
 }
 
 /**
+ * A pseudo-iterator result (done is true if the current value is the last one).
+ */
+export interface PseudoIteratorResult<T> {
+    done: boolean;
+    value: T;
+}
+
+/**
  * The results of a request being replayed.
  */
 export interface FuzzRequestResult {
@@ -353,9 +361,9 @@ export interface RevealInterfaceV1 {
      *                             A negative value will ask the function to return
      *                             the number of mutations for the current input request.
      *
-     * @returns {Request[]} A list of mutated requests.
+     * @returns {PseudoIteratorResult<Request[]>} A list of mutated requests.
      */
-    mutateInputRequests(id: FuzzID, mutations: number): Request[];
+    mutateInputRequests(id: FuzzID, mutations: number): PseudoIteratorResult<Request[]>;
 
     /**
      * Update the statistics with new metrics.

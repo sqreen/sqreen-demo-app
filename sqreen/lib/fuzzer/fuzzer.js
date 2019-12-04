@@ -21,6 +21,7 @@ const FuzzUtils = require('./utils');
  * @typedef {import('./reveal').MetricKey} MetricKey
  * @typedef {import('./reveal').MetricType} MetricType
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
+ * @typedef {import('./reveal').PseudoIteratorResult<Request[]>} RequestsIteratorResult
  *
  * @typedef {import('./request')} FuzzerRequest
  *
@@ -192,7 +193,7 @@ const Fuzzer = module.exports = class {
      * Mutate input requests.
      *
      * @param {number} mutations - Total number of mutations (override options)
-     * @returns {Request[]} An array of mutated requests
+     * @returns {RequestsIteratorResult} An array of mutated requests
      */
     _mutateInputRequests(mutations) {
 
@@ -200,17 +201,16 @@ const Fuzzer = module.exports = class {
     }
 
     /**
-     * @typedef {(original: InputRequest, mutated: Request[]) => boolean} HandleMutatedRequest
+     * @typedef {(mutated: Request[]) => boolean} HandleMutatedRequest
      */
     /**
      * Mutate input requests (in a primitive async way...).
      *
-     * @param {InputRequest[]} requests - An input request object.
      * @param {HandleMutatedRequest} cbk - A callback handling the mutated request.
      * @param {{ delay?: number, batchlen?: number }} [options] - Some useful options.
      * @returns {Promise}
      */
-    mutateInputRequests(requests, cbk, options) {
+    mutateInputRequests(cbk, options) {
 
         // $lab:coverage:off$
         options = options || {};
@@ -225,24 +225,22 @@ const Fuzzer = module.exports = class {
             };
 
             // $lab:coverage:off$
-            if (!requests.length) {
-                return done();
-            }
             const delay = options.delay || 10;
             const batchlen = options.batchlen || 20;
             // $lab:coverage:on$
-            FuzzUtils.asyncForEach(requests, (request, i, next) => {
+            FuzzUtils.asyncWhile((_i, next) => {
 
-                let mutatedReqs;
+                let result;
                 try {
-                    mutatedReqs = this._mutateInputRequests(-1);
+                    result = this._mutateInputRequests(-1);
                 }
                 catch (e) {
                     return reject(e);
                 }
+                const mutatedReqs = result.value;
                 // $lab:coverage:off$
                 if (!Array.isArray(mutatedReqs)) {
-                    return reject(new Error('Critical failure in requests generator'));
+                    return reject(new Error('Unknown critical failure in requests generator'));
                 }
                 const mutatedReqsCnt = mutatedReqs.length;
                 if (mutatedReqsCnt <= 0) {
@@ -254,7 +252,7 @@ const Fuzzer = module.exports = class {
 
                     let res = false;
                     try {
-                        res = cbk(request, chunk);
+                        res = cbk(chunk);
                         // $lab:coverage:off$
                     }
                     catch (e) {
@@ -272,13 +270,15 @@ const Fuzzer = module.exports = class {
                     }
                     // handle next mutated requests
                     if (!innernext()) {
-                        // handle next request
-                        if (!next()) {
+                        if (result.done) {
                             done();
+                        }
+                        else {
+                            next();
                         }
                     }
                 }, { delay, chunklen: batchlen });
-            }, { delay });
+            }, delay);
         });
     };
 

@@ -44,3 +44,25 @@ module.exports.asyncForEach = (arr, cbk, options) => {
     };
     Timers.setImmediate(loop, 0);
 };
+
+/**
+ * Loop asynchronously on a callback.
+ *
+ * @param {(i: number, next: () => void) => void} cbk - A callback handling each iteration.
+ * @param {number} delay - Delay between each iteration (in ms).
+ */
+module.exports.asyncWhile = (cbk, delay) => {
+
+    // $lab:coverage:off$
+    delay = delay > 0 ? delay : 1;
+    // $lab:coverage:on$
+    const loop = (i) => {
+
+        const next = () => {
+
+            Timers.setTimeout(loop, delay, i++);
+        };
+        cbk(i, next);
+    };
+    Timers.setImmediate(loop, 0);
+};

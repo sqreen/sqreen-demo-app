@@ -350,7 +350,7 @@ const startFuzzer = function (rawrun) {
 
     //
     // start mutating requests in a (async) loop
-    fuzzer.mutateInputRequests(run.corpus.requests, (origReq, mutatedReqs) => {
+    fuzzer.mutateInputRequests((mutatedReqs) => {
 
         const n = mutatedReqs.length;
         for (let i = 0; i < n && STATE.isRunning(); ++i) {

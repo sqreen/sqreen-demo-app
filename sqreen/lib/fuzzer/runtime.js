@@ -19,6 +19,7 @@
  * @typedef {import('./reveal').StackTrace} StackTrace
  * @typedef {import('./reveal').MetricRecord} MetricRecord
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
+ * @typedef {import('./reveal').PseudoIteratorResult<Request[]>} RequestsIteratorResult
  */
 
 const VM = require('./vm');
@@ -238,7 +239,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @param {number} mutations - Maximum number of mutated requests to generate.
      *                             A negative value will ask the function to return
      *                             the number of mutations for one input request.
-     * @returns {Request[]} A list of mutated requests.
+     * @returns {RequestsIteratorResult} A list of mutated requests.
      */
     mutateInputRequests(id, mutations) {
         // @ts-ignore
