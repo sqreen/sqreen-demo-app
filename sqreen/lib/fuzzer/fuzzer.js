@@ -217,26 +217,24 @@ const Fuzzer = module.exports = class {
         // $lab:coverage:on$
         return new Promise((resolve, reject) => {
 
-            console.log('mutateInputRequests');
             this._mutationsdone = false;
             const done = () => {
 
                 this._mutationsdone = true;
-                console.log('done');
                 return resolve();
             };
 
             // $lab:coverage:off$
             const delay = options.delay || 10;
-            const batchlen = options.batchlen || 20;
+            let batchlen = options.batchlen || 20;
+            batchlen = batchlen >= 2 ? batchlen : 2;
+
             // $lab:coverage:on$
             FuzzUtils.asyncWhile((_i, next) => {
 
                 let result;
-                console.log('asyncWhile');
                 try {
                     result = this._mutateInputRequests(-1);
-                    console.log(result);
                 }
                 catch (e) {
                     return reject(e);
@@ -248,10 +246,8 @@ const Fuzzer = module.exports = class {
                 }
                 const mutatedReqsCnt = mutatedReqs.length;
                 if (mutatedReqsCnt <= 0) {
-                    console.log('nothing to do');
                     return done();
                 }
-                console.log('asyncForEach');
                 let failures = 0;
                 // $lab:coverage:on$
                 FuzzUtils.asyncForEach(mutatedReqs, (chunk, _j, innernext) => {
@@ -262,7 +258,6 @@ const Fuzzer = module.exports = class {
                         // $lab:coverage:off$
                     }
                     catch (e) {
-                        console.log('cbk failed');
                         failures++;
                         // all requests failed, we can assume this is super bad and abort...
                         if (failures === mutatedReqsCnt) {
@@ -273,18 +268,14 @@ const Fuzzer = module.exports = class {
                     }
                     // $lab:coverage:on$
                     if (!res) {
-                        console.log('asked to STOP');
                         return done();
                     }
                     // handle next mutated requests
                     if (!innernext()) {
-                        console.log('result');
                         if (result.done) {
-                            done();
+                            return done();
                         }
-                        else {
-                            next();
-                        }
+                        return next();
                     }
                 }, { delay, chunklen: batchlen });
             }, delay);

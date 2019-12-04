@@ -255,7 +255,6 @@ const startFuzzer = function (rawrun) {
     if (!run) {
         return;
     }
-    console.log(run);
     // $lab:coverage:on$
     const options = run.options;
 
@@ -354,7 +353,6 @@ const startFuzzer = function (rawrun) {
     fuzzer.mutateInputRequests((mutatedReqs) => {
 
         const n = mutatedReqs.length;
-        console.log(mutatedReqs);
         for (let i = 0; i < n && STATE.isRunning(); ++i) {
             const mutatedReq = mutatedReqs[i];
             // $lab:coverage:off$
@@ -365,11 +363,11 @@ const startFuzzer = function (rawrun) {
             FakeRequest(SERVER, mutatedReq)
                 .send(mutatedReq.params.form)
                 .query(mutatedReq.params.query)
-                .custom((req, res) => {
+                .custom((req, _res) => {
 
                     fuzzer.initRequest(req, mutatedReq);
                 })
-                .end((req, res) => {
+                .end((req, _res) => {
 
                     fuzzer.finalizeRequest(req, mutatedReq);
 
