@@ -11,9 +11,8 @@
  * @typedef {import('./reveal').ReqID} ReqID
  * @typedef {import('./reveal').RunID} RunID
  * @typedef {import('./reveal').Options} Options
- * @typedef {import('./reveal').Version} Version
+ * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
  * @typedef {import('./reveal').Run} Run
- * @typedef {import('./reveal').InputRequest} InputRequest
  * @typedef {import('./reveal').Request} Request
  * @typedef {import('./reveal').RunStats} RunStats
  * @typedef {import('./reveal').Trace} Trace
@@ -69,6 +68,28 @@ module.exports.RuntimeV1 = class extends Runtime {
         this._bindVM();
     }
 
+    // $lab:coverage:off$
+    /**
+     * Get current interface version.
+     *
+     * @returns {number} Current interface version (eq: 1).
+     */
+    getInterfaceVersion() {
+        // @ts-ignore
+        return this._runInContext(this._api_getInterfaceVersion)();
+    }
+
+    /**
+     * Get current runtime version.
+     *
+     * @returns {RuntimeVersion} Metadata related to the current runtime version.
+     */
+    getRuntimeVersion() {
+        // @ts-ignore
+        return this._runInContext(this._api_getRuntimeVersion)();
+    }
+    // $lab:coverage:on$
+
     /**
      * Validate an input run.
      *
@@ -119,16 +140,6 @@ module.exports.RuntimeV1 = class extends Runtime {
 
     // $lab:coverage:off$
     /**
-     * @param {FuzzID} id - A fuzzer reference.
-     *
-     * @returns {Version} Metadata related to the current runtime version.
-     */
-    getVersion(id) {
-        // @ts-ignore
-        return this._runInContext(this._api_getVersion)(id);
-    }
-
-    /**
      * Retrieve fuzzer options (can differ for every run).
      *
      * @param {FuzzID} id - A fuzzer reference.
@@ -140,18 +151,6 @@ module.exports.RuntimeV1 = class extends Runtime {
         return this._runInContext(this._api_getOptions)(id);
     }
     // $lab:coverage:on$
-
-    /**
-     * Compute a (balanced) number of mutations for each requests.
-     *
-     * @param {FuzzID} id - A fuzzer reference.
-     *
-     * @returns {number[]} A list of mutations count (associated to each input requests).
-     */
-    mutationsPerRequest(id) {
-        // @ts-ignore
-        return this._runInContext(this._api_mutationsPerRequest)(id);
-    }
 
     /**
      * Prepare a request before replaying it.
@@ -233,33 +232,17 @@ module.exports.RuntimeV1 = class extends Runtime {
     }
 
     /**
-     * Generate mutated requests from an input request.
+     * Generate mutated requests from the corpus.
      *
      * @param {FuzzID} id - A fuzzer reference.
-     * @param {InputRequest} request - An input request (supposedly from the run's corpus).
-     * @param {number} mutations - A number of mutations to perform
-     *                             (supposedly coming from the result of `mutationsPerRequest`).
-     *
+     * @param {number} mutations - Maximum number of mutated requests to generate.
+     *                             A negative value will ask the function to return
+     *                             the number of mutations for one input request.
      * @returns {Request[]} A list of mutated requests.
      */
-    mutateInputRequest(id, request, mutations) {
+    mutateInputRequests(id, mutations) {
         // @ts-ignore
-        return this._runInContext(this._api_mutateInputRequest)(id, request, mutations);
-    }
-
-    /**
-     * Update an input request by merging it with a (supposedly interesting) mutated version.
-     *
-     * @param {FuzzID} id - A fuzzer reference.
-     * @param {InputRequest} original - An input request (supposedly from the run's corpus).
-     * @param {Partial<Request>} mutated - An associated mutated version of the input request.
-     * @param {FuzzRequestResult} result - Fuzzing result (coming from the related `finalizeRequest` call).
-     *
-     * @returns {InputRequest} The updated input request.
-     */
-    updateInputRequest(id, original, mutated, result) {
-        // @ts-ignore
-        return this._runInContext(this._api_updateInputRequest)(id, original, mutated, result);
+        return this._runInContext(this._api_mutateInputRequests)(id, mutations);
     }
 
     /**
@@ -313,11 +296,10 @@ module.exports.RuntimeV1 = class extends Runtime {
 
         const APIS = [
             'validateRun', 'initFuzzer', 'getRunID', 'getRunStats',
-            'getVersion', 'getOptions', 'mutationsPerRequest',
+            'getInterfaceVersion', 'getRuntimeVersion', 'getOptions',
             'initRequest', 'recordTraces', 'recordStackTraces',
-            'finalizeRequest', 'terminateRequest', 'mutateInputRequest',
-            'updateInputRequest', 'updateMetrics', 'updateRequestMetrics',
-            'terminateFuzzer'];
+            'finalizeRequest', 'terminateRequest', 'mutateInputRequests',
+            'updateMetrics', 'updateRequestMetrics', 'terminateFuzzer'];
 
         for (const api of APIS) {
             this[`_api_${api}`] = this._importAPI(api);

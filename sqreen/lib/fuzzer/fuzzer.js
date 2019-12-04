@@ -13,6 +13,7 @@ const FuzzUtils = require('./utils');
 /**
  * @typedef { import('http').IncomingMessage } IncomingMessage
  *
+ * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
  * @typedef {import('./reveal').Run} Run
  * @typedef {import('./reveal').Options} Options
  * @typedef {import('./reveal').InputRequest} InputRequest
@@ -126,11 +127,10 @@ const Fuzzer = module.exports = class {
      * Prepare a request (real or fake) before replaying it.
      *
      * @param {IncomingMessage} req - An input request object.
-     * @param {InputRequest} orig - The original input.
      * @param {Request} mutated - The mutated input.
      * @returns {boolean} True if request is being replayed by us.
      */
-    initRequest(req, orig, mutated) {
+    initRequest(req, mutated) {
 
         // $lab:coverage:off$
         if (!req || Fuzzer.isRequestReplayed(req)) {
@@ -155,11 +155,10 @@ const Fuzzer = module.exports = class {
      * Finalize a request (real or fake) after replaying it.
      *
      * @param {IncomingMessage} req - An input request object.
-     * @param {InputRequest} orig - The original input.
      * @param {Request} mutated - The mutated input.
      * @returns {boolean} True if request is being replayed by us.
      */
-    finalizeRequest(req, orig, mutated) {
+    finalizeRequest(req, mutated) {
 
         // $lab:coverage:off$
         if (!Fuzzer.isRequestReplayed(req)) {
@@ -179,7 +178,7 @@ const Fuzzer = module.exports = class {
             return false;
         }
         if (ret.unique) {
-            this._onNewRequest(req, orig, mutated, ret);
+            this._onNewRequest(req, ret);
         }
         this._handledreqs--;
         this._onRequestDone(req);
@@ -190,15 +189,14 @@ const Fuzzer = module.exports = class {
     }
 
     /**
-     * Mutate an input request.
+     * Mutate input requests.
      *
-     * @param {InputRequest} request - An input request object.
      * @param {number} mutations - Total number of mutations (override options)
      * @returns {Request[]} An array of mutated requests
      */
-    mutateInputRequest(request, mutations) {
+    _mutateInputRequests(mutations) {
 
-        return this._runtime.mutateInputRequest(this._id, request, mutations);
+        return this._runtime.mutateInputRequests(this._id, mutations);
     }
 
     /**
@@ -217,73 +215,71 @@ const Fuzzer = module.exports = class {
         // $lab:coverage:off$
         options = options || {};
         // $lab:coverage:on$
-        return Promise.resolve()
-            .then(() => this.mutationsPerRequest())
-            .then((mutations) =>
+        return new Promise((resolve, reject) => {
 
-                new Promise((resolve) => {
+            this._mutationsdone = false;
+            const done = () => {
 
-                    this._mutationsdone = false;
-                    const done = () => {
+                this._mutationsdone = true;
+                return resolve();
+            };
 
-                        this._mutationsdone = true;
-                        return resolve();
-                    };
+            // $lab:coverage:off$
+            if (!requests.length) {
+                return done();
+            }
+            const delay = options.delay || 10;
+            const batchlen = options.batchlen || 20;
+            // $lab:coverage:on$
+            FuzzUtils.asyncForEach(requests, (request, i, next) => {
 
-                    const count = requests.length;
-                    // $lab:coverage:off$
-                    if (!count || count !== mutations.length) {
+                let mutatedReqs;
+                try {
+                    mutatedReqs = this._mutateInputRequests(-1);
+                }
+                catch (e) {
+                    return reject(e);
+                }
+                // $lab:coverage:off$
+                if (!Array.isArray(mutatedReqs)) {
+                    return reject(new Error('Critical failure in requests generator'));
+                }
+                const mutatedReqsCnt = mutatedReqs.length;
+                if (mutatedReqsCnt <= 0) {
+                    return done();
+                }
+                let failures = 0;
+                // $lab:coverage:on$
+                FuzzUtils.asyncForEach(mutatedReqs, (chunk, _j, innernext) => {
+
+                    let res = false;
+                    try {
+                        res = cbk(request, chunk);
+                        // $lab:coverage:off$
+                    }
+                    catch (e) {
+                        failures++;
+                        // all requests failed, we can assume this is super bad and abort...
+                        if (failures === mutatedReqsCnt) {
+                            return reject(e);
+                        }
+                        // try to continue fuzzing
+                        res = true;
+                    }
+                    // $lab:coverage:on$
+                    if (!res) {
                         return done();
                     }
-                    const delay = options.delay || 10;
-                    const batchlen = options.batchlen || 20;
-                    // $lab:coverage:on$
-                    FuzzUtils.asyncForEach(requests, (request, i, next) => {
-
-                        const mutatedReqs = this.mutateInputRequest(request, mutations[i]);
-                        // $lab:coverage:off$
-                        if (!mutatedReqs || !mutatedReqs.length) {
-                            return done();
+                    // handle next mutated requests
+                    if (!innernext()) {
+                        // handle next request
+                        if (!next()) {
+                            done();
                         }
-                        // $lab:coverage:on$
-                        FuzzUtils.asyncForEach(mutatedReqs, (chunk, _j, innernext) => {
-
-                            if (!cbk(request, chunk)) {
-                                return done();
-                            }
-                            // handle next mutated requests
-                            if (!innernext()) {
-                                // handle next request
-                                if (!next()) {
-                                    done();
-                                }
-                            }
-                        }, { delay, chunklen: batchlen });
-                    }, { delay });
-                }));
-    };
-
-    /**
-     * Update an original input request based on mutated one values.
-     *
-     * @param {InputRequest} orig - Original input request.
-     * @param {Partial<Request>} mutated - An associated mutated version of the input request.
-     * @param {FuzzRequestResult} result - Fuzzing result (coming from the related `finalizeRequest` call).
-     * @returns {InputRequest}
-     */
-    updateInputRequest(orig, mutated, result) {
-
-        return this._runtime.updateInputRequest(this._id, orig, mutated, result);
-    }
-
-    /**
-     * Compute an array with a balanced number of mutations for each request.
-     *
-     * @returns {Array} An array of mutations count, one for each request.
-     */
-    mutationsPerRequest() {
-
-        return this._runtime.mutationsPerRequest(this._id);
+                    }
+                }, { delay, chunklen: batchlen });
+            }, { delay });
+        });
     };
 
     /**
@@ -461,11 +457,10 @@ const Fuzzer = module.exports = class {
         this.emit('request_done', req);
     }
 
-    _onNewRequest(req, orig, mutated, res) {
+    _onNewRequest(req, res) {
 
-        const updated = this.updateInputRequest(orig, mutated, res);
         // @ts-ignore
-        this.emit('request_new', req, updated);
+        this.emit('request_new', req, res.updated);
     }
 
     _onDone() {

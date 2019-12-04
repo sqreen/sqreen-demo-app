@@ -352,49 +352,37 @@ const startFuzzer = function (rawrun) {
     // start mutating requests in a (async) loop
     fuzzer.mutateInputRequests(run.corpus.requests, (origReq, mutatedReqs) => {
 
-        try {
-            const n = mutatedReqs.length;
-            for (let i = 0; i < n && STATE.isRunning(); ++i) {
-                const mutatedReq = mutatedReqs[i];
-                // $lab:coverage:off$
-                if (!mutatedReq.params) {
-                    continue;
-                }
-                // $lab:coverage:on$
-                FakeRequest(SERVER, mutatedReq)
-                    .send(mutatedReq.params.form)
-                    .query(mutatedReq.params.query)
-                    .custom((req, res) => {
-
-                        fuzzer.initRequest(req, origReq, mutatedReq);
-                    })
-                    .end((req, res) => {
-
-                        fuzzer.finalizeRequest(req, origReq, mutatedReq);
-
-                        if (shouldPushStats(fuzzer)) {
-                            sendStats(false);
-                        }
-                        // $lab:coverage:off$
-                        // don't keep persistent data in express
-                        // TODO: find a better way...
-                        if (req && req.session && req.session.destroy) {
-                            req.session.destroy();
-                        }
-                        // $lab:coverage:on$
-                    });
+        const n = mutatedReqs.length;
+        for (let i = 0; i < n && STATE.isRunning(); ++i) {
+            const mutatedReq = mutatedReqs[i];
+            // $lab:coverage:off$
+            if (!mutatedReq.params) {
+                continue;
             }
+            // $lab:coverage:on$
+            FakeRequest(SERVER, mutatedReq)
+                .send(mutatedReq.params.form)
+                .query(mutatedReq.params.query)
+                .custom((req, res) => {
+
+                    fuzzer.initRequest(req, mutatedReq);
+                })
+                .end((req, res) => {
+
+                    fuzzer.finalizeRequest(req, mutatedReq);
+
+                    if (shouldPushStats(fuzzer)) {
+                        sendStats(false);
+                    }
+                    // $lab:coverage:off$
+                    // don't keep persistent data in express
+                    // TODO: find a better way...
+                    if (req && req.session && req.session.destroy) {
+                        req.session.destroy();
+                    }
+                    // $lab:coverage:on$
+                });
         }
-        // $lab:coverage:off$
-        catch (err) {
-            if (err) {
-                const errmsg = err.message || err.toString();
-                // @ts-ignore
-                Logger.ERROR(`"Failed while replaying a request with "${errmsg}"`);
-            }
-            // Try to continue the fuzzing
-        }
-        // $lab:coverage:on$
         return !!STATE.isRunning();
     },
     // requests injection rate

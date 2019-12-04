@@ -6,13 +6,14 @@
 /**
  * Various data related to the runtime version.
  */
-export interface Version {
-    commit: string;         // latest commit hash during runtime compilation
+export interface RuntimeVersion {
+    commit: string;         // Latest commit hash during runtime compilation
     version: {
         major: number;
         minor: number;
         patch: number;
-        string: string;     // runtime version as a string (ex: '0.3.3')
+        string: string;     // Runtime version as a string (ex: '0.3.3')
+        number: number;     // Runtime version as a number (ex: 0x30003)
     };
 }
 
@@ -28,8 +29,8 @@ export const enum RuntimeSignType {
  * Signature data (and associated metadata).
  */
 interface RuntimeSignInterface {
-    type: RuntimeSignType;      // runtime signature type
-    value: string;              // runtime signature (in hexadecimal)
+    type: RuntimeSignType;      // Runtime signature type
+    value: string;              // Runtime signature (in hexadecimal)
 }
 
 export interface RuntimeSignRSA extends RuntimeSignInterface {
@@ -49,11 +50,15 @@ export type RuntimeSign = RuntimeSignRSA | RuntimeSignECC;
  * Runtime code (and associated metadata).
  */
 export interface Runtime {
-    code: string;
-    version: number;
-    timestamp?: Date;
-    flags?: string[];
-    signatures: RuntimeSign[];
+    code: string;               // Runtime JS code (as a raw string).
+    version: number;            // Version (encoded like in `RuntimeVersion.version.number`).
+    interface?: {               // Interface versions included in the runtime (eq: (1, 1) => only V1 provided).
+        min: number;
+        max: number;
+    };
+    timestamp?: Date;           // Date keeping track of runtime release time.
+    flags?: string[];           // Optional flags (reserved).
+    signatures: RuntimeSign[];  // Runtime signatures.
 }
 
 /**
@@ -71,10 +76,10 @@ export type ReqID = number;
  */
 export interface Options {
     engine: {
-        timeout: number;    // fuzzing session global timeout (~maximum time)
+        timeout: number;    // Fuzzing session global timeout (~maximum time)
         throughput: {
-            batch: number;  // number of requests to send in a row
-            delay: number;  // delay (in ms) between each batch
+            batch: number;  // Number of requests to send in a row
+            delay: number;  // Delay (in ms) between each batch
         };
     };
 }
@@ -117,6 +122,7 @@ export interface InputRequest extends Partial<RequestInterface> {
  * A mutated request, including the URL path to be used while building the native request.
  */
 export interface Request extends RequestInterface {
+    ref: number;                          // InputRequest reference
     path: string;                         // A full URL path (pathname, query string, ...)
     params: {                             // Request parameters (as raw key/value)
         query?: Record<string, string>;
@@ -211,12 +217,27 @@ export interface StackTrace {
  * The results of a request being replayed.
  */
 export interface FuzzRequestResult {
-    success: boolean;   // True if request has been successfully replayed
-    unique: boolean;    // True if request is unique (new code coverage)
-    hash: number;       // Code coverage identifier
+    success: boolean;           // True if request has been successfully replayed
+    unique: boolean;            // True if request is unique (new code coverage)
+    updated?: InputRequest;     // An updated input request based on mutated one
+    hash: number;               // Code coverage identifier
 }
 
 export interface RevealInterfaceV1 {
+    /**
+     * Get current interface version.
+     *
+     * @returns {number} Current interface version (eq: 1).
+     */
+    getInterfaceVersion(): number;
+
+    /**
+     * Get current runtime version.
+     *
+     * @returns {RuntimeVersion} Metadata related to the current runtime version.
+     */
+    getRuntimeVersion(): RuntimeVersion;
+
     /**
      * Validate an input run.
      *
@@ -254,13 +275,6 @@ export interface RevealInterfaceV1 {
     getRunStats(id: FuzzID): RunStats;
 
     /**
-     * @param {FuzzID} id - A fuzzer reference.
-     *
-     * @returns {Version} Metadata related to the current runtime version.
-     */
-    getVersion(id: FuzzID): Version;
-
-    /**
      * Retrieve fuzzer options (can differ for every run).
      *
      * @param {FuzzID} id - A fuzzer reference.
@@ -268,15 +282,6 @@ export interface RevealInterfaceV1 {
      * @returns {Options} Current Fuzzer options.
      */
     getOptions(id: FuzzID): Options;
-
-    /**
-     * Compute a (balanced) number of mutations for each requests.
-     *
-     * @param {FuzzID} id - A fuzzer reference.
-     *
-     * @returns {number[]} A list of mutations count (associated to each input requests).
-     */
-    mutationsPerRequest(id: FuzzID): number[];
 
     /**
      * Prepare a request before replaying it.
@@ -341,29 +346,16 @@ export interface RevealInterfaceV1 {
     terminateRequest(id: FuzzID, rid: ReqID): boolean;
 
     /**
-     * Generate mutated requests from an input request.
+     * Generate mutated requests from the corpus.
      *
      * @param {FuzzID} id - A fuzzer reference.
-     * @param {InputRequest} request - An input request (supposedly from the run's corpus).
-     * @param {number} mutations - A number of mutations to perform
-     *                             (supposedly coming from the result of `mutationsPerRequest`).
+     * @param {number} mutations - Maximum number of mutated requests to generate.
+     *                             A negative value will ask the function to return
+     *                             the number of mutations for the current input request.
      *
      * @returns {Request[]} A list of mutated requests.
      */
-    mutateInputRequest(id: FuzzID, request: InputRequest, mutations: number): Request[];
-
-    /**
-     * Update an input request by merging it with a (supposedly interesting) mutated version.
-     *
-     * @param {FuzzID} id - A fuzzer reference.
-     * @param {InputRequest} original - An input request (supposedly from the run's corpus).
-     * @param {Request} mutated - An associated mutated version of the input request.
-     * @param {FuzzRequestResult} result - Fuzzing result (coming from the related `finalizeRequest` call).
-     *
-     * @returns {InputRequest} The updated input request.
-     */
-    updateInputRequest(id: FuzzID, original: InputRequest, mutated: Partial<Request>,
-                       result: FuzzRequestResult): InputRequest;
+    mutateInputRequests(id: FuzzID, mutations: number): Request[];
 
     /**
      * Update the statistics with new metrics.
