@@ -353,6 +353,7 @@ const startFuzzer = function (rawrun) {
     fuzzer.mutateInputRequests((mutatedReqs) => {
 
         const n = mutatedReqs.length;
+        console.log(mutatedReqs);
         for (let i = 0; i < n && STATE.isRunning(); ++i) {
             const mutatedReq = mutatedReqs[i];
             // $lab:coverage:off$

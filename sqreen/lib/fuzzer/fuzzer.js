@@ -217,10 +217,12 @@ const Fuzzer = module.exports = class {
         // $lab:coverage:on$
         return new Promise((resolve, reject) => {
 
+            console.log('mutateInputRequests');
             this._mutationsdone = false;
             const done = () => {
 
                 this._mutationsdone = true;
+                console.log('done');
                 return resolve();
             };
 
@@ -231,6 +233,7 @@ const Fuzzer = module.exports = class {
             FuzzUtils.asyncWhile((_i, next) => {
 
                 let result;
+                console.log('asyncWhile');
                 try {
                     result = this._mutateInputRequests(-1);
                 }
@@ -246,6 +249,7 @@ const Fuzzer = module.exports = class {
                 if (mutatedReqsCnt <= 0) {
                     return done();
                 }
+                console.log('asyncForEach');
                 let failures = 0;
                 // $lab:coverage:on$
                 FuzzUtils.asyncForEach(mutatedReqs, (chunk, _j, innernext) => {
@@ -256,6 +260,7 @@ const Fuzzer = module.exports = class {
                         // $lab:coverage:off$
                     }
                     catch (e) {
+                        console.log('cbk failed');
                         failures++;
                         // all requests failed, we can assume this is super bad and abort...
                         if (failures === mutatedReqsCnt) {
@@ -266,10 +271,12 @@ const Fuzzer = module.exports = class {
                     }
                     // $lab:coverage:on$
                     if (!res) {
+                        console.log('asked to STOP');
                         return done();
                     }
                     // handle next mutated requests
                     if (!innernext()) {
+                        console.log('result');
                         if (result.done) {
                             done();
                         }
