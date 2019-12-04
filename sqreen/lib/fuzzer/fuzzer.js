@@ -236,6 +236,7 @@ const Fuzzer = module.exports = class {
                 console.log('asyncWhile');
                 try {
                     result = this._mutateInputRequests(-1);
+                    console.log(result);
                 }
                 catch (e) {
                     return reject(e);
@@ -247,6 +248,7 @@ const Fuzzer = module.exports = class {
                 }
                 const mutatedReqsCnt = mutatedReqs.length;
                 if (mutatedReqsCnt <= 0) {
+                    console.log('nothing to do');
                     return done();
                 }
                 console.log('asyncForEach');

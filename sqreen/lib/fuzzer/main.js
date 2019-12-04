@@ -255,6 +255,7 @@ const startFuzzer = function (rawrun) {
     if (!run) {
         return;
     }
+    console.log(run);
     // $lab:coverage:on$
     const options = run.options;
 
