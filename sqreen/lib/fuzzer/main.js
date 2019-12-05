@@ -11,10 +11,11 @@
  * @typedef {import('./reveal').Options} Options
  */
 
+const Logger = /** @type {import('./logger').SqreenLogger} */ (require('../logger'));
+
 const AsyncLock = require('async-lock');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
-const Logger = require('../logger');
 const FakeRequest = require('./fakerequest');
 const RuntimeV1 = require('./runtime').RuntimeV1;
 const Fuzzer = require('./fuzzer');
@@ -87,9 +88,9 @@ const reloadRuntime = function (runtime) {
         !STATE.isStopped()) {
         return false;
     }
+    Logger.DEBUG('Checking signature for reveal runtime');
     // $lab:coverage:on$
     if (!Signature.verifyRuntimeSignature(runtime)) {
-        // @ts-ignore
         Logger.ERROR('Invalid reveal runtime signature!');
         return false;
     }
@@ -113,7 +114,6 @@ module.exports.reload = function () {
                 if (!runtime.status || !runtime.version) {
                     throw new Error('Reveal backend failed to send a runtime.');
                 }
-                // @ts-ignore
                 Logger.INFO(`Reloading reveal runtime (version: ${runtime.version})`);
                 const res = reloadRuntime(runtime);
                 if (!res) {
@@ -185,18 +185,15 @@ const recordMutatedRequest = (request) =>
     BackEnd.reveal_post_requests(Agent.SESSION_ID(), request)
         .then((response) => {
 
-            // @ts-ignore
             Logger.INFO('Mutated request successfully sent to reveal backend.');
         })
         .catch((err) => {
 
             // $lab:coverage:off$
             if (err && err.message) {
-                // @ts-ignore
                 Logger.ERROR(`Reveal backend didn't received the mutated request with "${err.message}"`);
             }
             else {
-                // @ts-ignore
                 Logger.ERROR('Reveal backend didn\'t received the mutated request.');
             }
             // $lab:coverage:on$
@@ -208,11 +205,9 @@ const recordStats = (stats, done) =>
         .then((response) => {
 
             if (!done) {
-                // @ts-ignore
                 Logger.INFO(`Run ${stats.runid} intermediate statistics successfully sent to reveal backend.`);
             }
             else {
-                // @ts-ignore
                 Logger.INFO(`Run ${stats.runid} statistics successfully sent to reveal backend.`);
             }
         })
@@ -221,12 +216,10 @@ const recordStats = (stats, done) =>
             // $lab:coverage:off$
             if (err && err.message) {
                 // $lab:coverage:on$
-                // @ts-ignore
                 Logger.ERROR(`Reveal backend didn't received current run statistics with "${err.message}"`);
             }
             else {
                 // $lab:coverage:off$
-                // @ts-ignore
                 Logger.ERROR('Reveal backend didn\'t received current run statistics.');
                 // $lab:coverage:on$
             }
@@ -262,7 +255,6 @@ const startFuzzer = function (rawrun) {
     // register a new run
     const fuzzer = new Fuzzer(runtime, run);
     if (!fuzzer.isValid()) {
-        // @ts-ignore
         Logger.ERROR('Reveal failed to init fuzzer with current run.');
         return;
     }
@@ -282,7 +274,6 @@ const startFuzzer = function (rawrun) {
         try {
             fuzzer.updateMetric('fuzzer.stopped', Date.now(), METRICTYPE.LAST);
 
-            // @ts-ignore
             Logger.INFO(`Reveal has successfully executed the current run (${runID}).`);
 
             sendStats(true);
@@ -294,16 +285,13 @@ const startFuzzer = function (rawrun) {
 
     // setup event handlers
     //
-    // @ts-ignore
     fuzzer.on('request_new', (req, newreq) => {
 
-        // @ts-ignore
         Logger.INFO('Reveal found a new interesting mutated request.');
 
         recordMutatedRequest(newreq);
     });
 
-    // @ts-ignore
     fuzzer.once('all_requests_done', () => {
 
         // $lab:coverage:off$
@@ -314,7 +302,6 @@ const startFuzzer = function (rawrun) {
         fuzzerDone(false);
     });
     // This is very important if we don't want to deadlock the fuzzer
-    // @ts-ignore
     fuzzer.once('timeout', () => {
 
         // $lab:coverage:off$
@@ -323,19 +310,16 @@ const startFuzzer = function (rawrun) {
             const timeout = !STATE.isTerminating();
             // $lab:coverage:off$
             if (timeout) {
-                // @ts-ignore
                 Logger.ERROR('Forced shutdown after timeout');
             }
             else {
                 // $lab:coverage:on$
-                // @ts-ignore
                 Logger.ERROR('Forced shutdown');
             }
             fuzzerDone(timeout);
         }
     });
 
-    // @ts-ignore
     STATE.once('terminating', () => {
 
         // force stop by shortening timeout
@@ -391,7 +375,6 @@ const startFuzzer = function (rawrun) {
         batchlen: options.engine.throughput.batch
     }).then(() => {
 
-        // @ts-ignore
         Logger.INFO('All requests have been replayed! Up to the server to process them now...');
     }).catch( (err) => {
 
@@ -399,7 +382,6 @@ const startFuzzer = function (rawrun) {
         // $lab:coverage:off$
         if (err && err.message) {
             // $lab:coverage:on$
-            // @ts-ignore
             Logger.ERROR(`"Failed to replay requests with "${err.message}"`);
         }
     });
@@ -427,7 +409,6 @@ const stopAsync = function () {
         }
         // $lab:coverage:on$
         STATE.terminating();
-        // @ts-ignore
         STATE.once('stopped', () => resolve(true));
     });
 };

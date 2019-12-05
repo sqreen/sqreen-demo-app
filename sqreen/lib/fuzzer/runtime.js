@@ -66,7 +66,23 @@ module.exports.RuntimeV1 = class extends Runtime {
 
         super(code);
         this._version = 'V1';
-        this._bindVM();
+
+        this._api_getInterfaceVersion = this._importAPI('getInterfaceVersion');
+        this._api_getRuntimeVersion = this._importAPI('getRuntimeVersion');
+        this._api_validateRun = this._importAPI('validateRun');
+        this._api_initFuzzer = this._importAPI('initFuzzer');
+        this._api_getRunID = this._importAPI('getRunID');
+        this._api_getRunStats = this._importAPI('getRunStats');
+        this._api_getOptions = this._importAPI('getOptions');
+        this._api_initRequest = this._importAPI('initRequest');
+        this._api_recordTraces = this._importAPI('recordTraces');
+        this._api_recordStackTraces = this._importAPI('recordStackTraces');
+        this._api_finalizeRequest = this._importAPI('finalizeRequest');
+        this._api_terminateRequest = this._importAPI('terminateRequest');
+        this._api_mutateInputRequests = this._importAPI('mutateInputRequests');
+        this._api_updateMetrics = this._importAPI('updateMetrics');
+        this._api_updateRequestMetrics = this._importAPI('updateRequestMetrics');
+        this._api_terminateFuzzer = this._importAPI('terminateFuzzer');
     }
 
     // $lab:coverage:off$
@@ -76,7 +92,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {number} Current interface version (eq: 1).
      */
     getInterfaceVersion() {
-        // @ts-ignore
+
         return this._runInContext(this._api_getInterfaceVersion)();
     }
 
@@ -86,7 +102,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {RuntimeVersion} Metadata related to the current runtime version.
      */
     getRuntimeVersion() {
-        // @ts-ignore
+
         return this._runInContext(this._api_getRuntimeVersion)();
     }
     // $lab:coverage:on$
@@ -99,7 +115,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {Run | null}  A (valid) Run object.
      */
     validateRun(rawrun) {
-        // @ts-ignore
+
         return this._runInContext(this._api_validateRun)(rawrun);
     }
 
@@ -111,7 +127,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {FuzzID | null} A fuzzer reference (or null in case of failure).
      */
     initFuzzer(run) {
-        // @ts-ignore
+
         return this._runInContext(this._api_initFuzzer)(run);
     }
 
@@ -123,7 +139,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {RunID} Current run identifier.
      */
     getRunID(id) {
-        // @ts-ignore
+
         return this._runInContext(this._api_getRunID)(id);
     }
 
@@ -135,7 +151,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {RunStats} Current run statistics.
      */
     getRunStats(id) {
-        // @ts-ignore
+
         return this._runInContext(this._api_getRunStats)(id);
     }
 
@@ -148,7 +164,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {Options} Current Fuzzer options.
      */
     getOptions(id) {
-        // @ts-ignore
+
         return this._runInContext(this._api_getOptions)(id);
     }
     // $lab:coverage:on$
@@ -162,7 +178,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {ReqID | null} A request reference (or null in case of failure)
      */
     initRequest(id, request) {
-        // @ts-ignore
+
         return this._runInContext(this._api_initRequest)(id, request);
     }
 
@@ -182,7 +198,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {boolean} True if successfully recorded.
      */
     recordTraces(id, rid, traces) {
-        // @ts-ignore
+
         return this._runInContext(this._api_recordTraces)(id, rid, traces);
     }
 
@@ -198,7 +214,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {boolean} True if successfully recorded.
      */
     recordStackTraces(id, rid, stacktraces) {
-        // @ts-ignore
+
         return this._runInContext(this._api_recordStackTraces)(id, rid, stacktraces);
     }
     // $lab:coverage:on$
@@ -213,7 +229,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {FuzzRequestResult | null} The results of the request being replayed, null in case of failure.
      */
     finalizeRequest(id, rid, request) {
-        // @ts-ignore
+
         return this._runInContext(this._api_finalizeRequest)(id, rid, request);
     }
 
@@ -228,7 +244,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {boolean} True if successful.
      */
     terminateRequest(id, rid) {
-        // @ts-ignore
+
         return this._runInContext(this._api_terminateRequest)(id, rid);
     }
 
@@ -242,7 +258,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {RequestsIteratorResult} A list of mutated requests.
      */
     mutateInputRequests(id, mutations) {
-        // @ts-ignore
+
         return this._runInContext(this._api_mutateInputRequests)(id, mutations);
     }
 
@@ -257,7 +273,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * Note: This function use a list of inputs as it's *strongly* advised to batch them.
      */
     updateMetrics(id, records) {
-        // @ts-ignore
+
         return this._runInContext(this._api_updateMetrics)(id, records);
     }
 
@@ -274,7 +290,7 @@ module.exports.RuntimeV1 = class extends Runtime {
      * Note: This function use a list of inputs as it's *strongly* advised to batch them.
      */
     updateRequestMetrics(id, rid, records) {
-        // @ts-ignore
+
         return this._runInContext(this._api_updateRequestMetrics)(id, rid, records);
     }
 
@@ -288,22 +304,8 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @returns {boolean} True if successful.
      */
     terminateFuzzer(id) {
-        // @ts-ignore
+
         return this._runInContext(this._api_terminateFuzzer)(id);
     }
     // $lab:coverage:on$
-
-    _bindVM() {
-
-        const APIS = [
-            'validateRun', 'initFuzzer', 'getRunID', 'getRunStats',
-            'getInterfaceVersion', 'getRuntimeVersion', 'getOptions',
-            'initRequest', 'recordTraces', 'recordStackTraces',
-            'finalizeRequest', 'terminateRequest', 'mutateInputRequests',
-            'updateMetrics', 'updateRequestMetrics', 'terminateFuzzer'];
-
-        for (const api of APIS) {
-            this[`_api_${api}`] = this._importAPI(api);
-        }
-    }
 };

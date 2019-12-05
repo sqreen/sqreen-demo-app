@@ -5,7 +5,6 @@
 // @ts-check
 'use strict';
 
-const Logger = require('../logger');
 const Crypto = require('crypto');
 const Assert = require('assert');
 
@@ -52,9 +51,6 @@ const getNormalizedPayloadAndSignature = module.exports._getNormalizedPayload = 
  * @returns boolean - True if signature has been successfully verified.
  */
 module.exports.verifyRuntimeSignature = function (runtime) {
-
-    // @ts-ignore
-    Logger.DEBUG('checking signature for reveal runtime');
 
     const runtimeData = getNormalizedPayloadAndSignature(runtime, SIGNTYPE.ECC);
     const payload = runtimeData.payload;

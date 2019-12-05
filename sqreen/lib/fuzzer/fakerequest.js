@@ -427,9 +427,10 @@ class FakeRequest {
     end(callback) {
 
         if (this._query && typeof this._req.url === 'string') {
-            const url = URL.parse(this._req.url);
-            // Invalid type signature for URL object
-            // @ts-ignore
+            const url = URL.parse(this._req.url, true);
+            url.search = null;
+            url.path = null;
+            url.href = null;
             url.query = Querystring.parse(this._query);
             this._req.url = URL.format(url);
         }

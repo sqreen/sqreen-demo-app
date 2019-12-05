@@ -5,10 +5,12 @@
 // @ts-check
 'use strict';
 
-const Events = require('./events');
+const Events = require('events');
 
-class State {
+class State extends Events.EventEmitter {
     constructor() {
+
+        super();
 
         this.UNINITIALIZED = 0;
         this.RUNNING = 1;
@@ -16,8 +18,6 @@ class State {
         this.STOPPED = 3;
 
         this._state = this.UNINITIALIZED;
-        // @ts-ignore
-        this._initListener();
     }
 
     isUninitialized() {
@@ -43,25 +43,20 @@ class State {
     running() {
 
         this._state = this.RUNNING;
-        // @ts-ignore
         this.emit('running');
     }
 
     terminating() {
 
         this._state = this.TERMINATING;
-        // @ts-ignore
         this.emit('terminating');
     }
 
     stopped() {
 
         this._state = this.STOPPED;
-        // @ts-ignore
         this.emit('stopped');
     }
 };
-
-Events.makeEventEmitter(State);
 
 module.exports = State;

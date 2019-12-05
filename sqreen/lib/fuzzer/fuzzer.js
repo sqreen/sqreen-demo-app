@@ -5,13 +5,14 @@
 // @ts-check
 'use strict';
 
+const Events = require('events');
+
 const METRICTYPE = require('./metrics').METRICTYPE;
-const Events = require('./events');
 const FuzzerRequest = require('./request');
 const FuzzUtils = require('./utils');
 
 /**
- * @typedef { import('http').IncomingMessage } IncomingMessage
+ * @typedef {import('http').IncomingMessage} IncomingMessage
  *
  * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
  * @typedef {import('./reveal').Run} Run
@@ -23,17 +24,21 @@ const FuzzUtils = require('./utils');
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
  * @typedef {import('./reveal').PseudoIteratorResult<Request[]>} RequestsIteratorResult
  *
+ * @typedef {import('./http').FuzzerIncomingMessage} FuzzerIncomingMessage
+ *
  * @typedef {import('./request')} FuzzerRequest
  *
  * @typedef {import('./runtime').RuntimeV1} Runtime
  */
 
-const Fuzzer = module.exports = class {
+const Fuzzer = module.exports = class extends Events {
     /**
      * @param {Runtime} runtime - A Runtime instance.
      * @param {Run} run - A run instance.
      */
     constructor(runtime, run) {
+
+        super();
 
         this._runtime = runtime;
         this._id = this._runtime.initFuzzer(run);
@@ -42,8 +47,6 @@ const Fuzzer = module.exports = class {
         this._mutationsdone = false;
         this._handledreqs = 0;
         this._timeout = null;
-        // @ts-ignore
-        this._initListener();
     }
 
     /**
@@ -127,18 +130,18 @@ const Fuzzer = module.exports = class {
     /**
      * Prepare a request (real or fake) before replaying it.
      *
-     * @param {IncomingMessage} req - An input request object.
+     * @param {IncomingMessage} _req - An input request object.
      * @param {Request} mutated - The mutated input.
      * @returns {boolean} True if request is being replayed by us.
      */
-    initRequest(req, mutated) {
+    initRequest(_req, mutated) {
 
         // $lab:coverage:off$
-        if (!req || Fuzzer.isRequestReplayed(req)) {
+        if (!_req || Fuzzer.isRequestReplayed(_req)) {
             return false;
         }
         // $lab:coverage:on$
-        // @ts-ignore
+        const req = /** @type FuzzerIncomingMessage */ (_req);
         req.__sqreen_replayed = true;
         const fuzzerrequest = new FuzzerRequest(this, mutated);
         // $lab:coverage:off$
@@ -146,7 +149,6 @@ const Fuzzer = module.exports = class {
             return false;
         }
         // $lab:coverage:on$
-        // @ts-ignore
         req.__sqreen_fuzzerrequest = fuzzerrequest;
         this._handledreqs++;
         return true;
@@ -166,7 +168,7 @@ const Fuzzer = module.exports = class {
             return false;
         }
         // $lab:coverage:on$
-        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        const fuzzerrequest = Fuzzer._getFuzzerRequest(req);
         // $lab:coverage:off$
         if (fuzzerrequest === null) {
             return false;
@@ -323,7 +325,7 @@ const Fuzzer = module.exports = class {
      */
     static recordTrace(req, trace) {
 
-        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        const fuzzerrequest = Fuzzer._getFuzzerRequest(req);
         if (fuzzerrequest === null) {
             return false;
         }
@@ -338,7 +340,7 @@ const Fuzzer = module.exports = class {
      */
     static recordStackTrace(req) {
 
-        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        const fuzzerrequest = Fuzzer._getFuzzerRequest(req);
         if (fuzzerrequest === null) {
             return false;
         }
@@ -386,7 +388,7 @@ const Fuzzer = module.exports = class {
      */
     static updateRequestMetric(req, key, value, type) {
 
-        const fuzzerrequest = Fuzzer.getFuzzerRequest(req);
+        const fuzzerrequest = Fuzzer._getFuzzerRequest(req);
         if (fuzzerrequest === null) {
             return false;
         }
@@ -397,13 +399,13 @@ const Fuzzer = module.exports = class {
     /**
      * Test if a request is being replayed.
      *
-     * @param {IncomingMessage | undefined} req - An input request object.
+     * @param {IncomingMessage} _req - An input request object.
      * @returns {boolean} True if request is being replayed by us.
      */
-    static isRequestReplayed(req) {
+    static isRequestReplayed(_req) {
 
         // $lab:coverage:off$
-        // @ts-ignore
+        const req = /** @type FuzzerIncomingMessage */ (_req);
         return req && !!req.__sqreen_replayed;
         // $lab:coverage:on$
     };
@@ -411,18 +413,18 @@ const Fuzzer = module.exports = class {
     /**
      * Get a {FuzzerRequest} object associated to a request.
      *
-     * @param {IncomingMessage | null} req - An HTTP request.
+     * @param {IncomingMessage} _req - An HTTP request.
      *
-     * @return {FuzzerRequest}
+     * @returns {FuzzerRequest | null}
      */
-    static getFuzzerRequest(req) {
+    static _getFuzzerRequest(_req) {
+
+        const req = /** @type FuzzerIncomingMessage */ (_req);
         // $lab:coverage:off$
-        // @ts-ignore
         if (!req || !req.__sqreen_fuzzerrequest) {
             return null;
         }
         // $lab:coverage:on$
-        // @ts-ignore
         return req.__sqreen_fuzzerrequest;
     }
 
@@ -453,22 +455,18 @@ const Fuzzer = module.exports = class {
     _onRequestDone(req) {
 
         this._fuzzedreqs++;
-        // @ts-ignore
         this.emit('request_done', req);
     }
 
     _onNewRequest(req, res) {
 
-        // @ts-ignore
         this.emit('request_new', req, res.updated);
     }
 
     _onDone() {
 
         this.resetTimeout();
-        // @ts-ignore
         this.emit('all_requests_done');
-        // @ts-ignore
         this.removeAllListeners();
     }
 
@@ -477,13 +475,9 @@ const Fuzzer = module.exports = class {
         // $lab:coverage:off$
         if (this._timeout !== null) {
             // $lab:coverage:on$
-            // @ts-ignore
             this.emit('timeout');
-            // @ts-ignore
             this.removeAllListeners();
         }
     }
 
 };
-
-Events.makeEventEmitter(Fuzzer);

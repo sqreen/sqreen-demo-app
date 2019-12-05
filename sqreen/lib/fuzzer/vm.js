@@ -42,8 +42,13 @@ const VM = module.exports.VM = class {
      * @returns {Vm.Script}
      */
     static createScript(code) {
-        // @ts-ignore
-        return Vm.createScript(code);
+
+        // $lab:coverage:off$
+        if (Buffer.isBuffer(code)) {
+            code = code.toString();
+        }
+        // $lab:coverage:on$
+        return new Vm.Script(code);
     }
 
     /**
