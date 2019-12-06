@@ -19,7 +19,7 @@ const InstrumentationUtils = require('./utils');
 const Feature = require('../command/features');
 const PreConditions = require('./preConditions');
 const Record = require('./record');
-const Fuzz = require('../fuzzer');
+const Fuzzer = require('../fuzzer');
 
 const Budget = require('./budget');
 
@@ -66,9 +66,9 @@ const report = function (cbResult, err, record) {
 
     const req = session.req;
     //$lab:coverage:off$
-    if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
+    if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
         //$lab:coverage:on$
-        Fuzz.fuzzer.updateRequestMetric(req, 'exceptions.attacks', 1, Fuzz.metrics.METRICTYPE.SUM);
+        Fuzzer.updateRequestMetric(req, 'exceptions.attacks', 1, Fuzzer.METRICTYPE.SUM);
     }
     if (record !== null) {
         const rule = cbResult.rule;
@@ -303,10 +303,10 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
             const req = session && session.req;
             // for now, skip exceptions triggered by the fuzzer
             //$lab:coverage:off$
-            if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
+            if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
                 //$lab:coverage:on$
                 try {
-                    Fuzz.fuzzer.updateRequestMetric(req, 'exceptions.failed_rules', 1, Fuzz.metrics.METRICTYPE.SUM);
+                    Fuzzer.updateRequestMetric(req, 'exceptions.failed_rules', 1, Fuzzer.METRICTYPE.SUM);
                 }
                 catch (er) {
                     //$lab:coverage:off$
@@ -360,7 +360,7 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
         const isReveal = list[i].rule && list[i].rule.purpose === 'reveal'; // TODO: have a global reveal state to quick path the reveal checks
         // skip reveal callbacks for reveal requests
         //$lab:coverage:off$
-        if (session !== undefined && session !== null && Fuzz.hasFuzzer() === true && Fuzz.fuzzer.isRequestReplayed(session.req) === true && isReveal === true) {
+        if (session !== undefined && session !== null && Fuzzer.hasFuzzer() === true && Fuzzer.isRequestReplayed(session.req) === true && isReveal === true) {
             //$lab:coverage:on$
             result[i] = {};
             continue;
@@ -381,11 +381,11 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
 
     // fuzzer activity is only reported internally
     //$lab:coverage:off$
-    if (session !== undefined && session !== null && Fuzz.hasFuzzer() === true && Fuzz.fuzzer.isRequestReplayed(session.req) === true) {
+    if (session !== undefined && session !== null && Fuzzer.hasFuzzer() === true && Fuzzer.isRequestReplayed(session.req) === true) {
         //$lab:coverage:on$
         try {
-            Fuzz.fuzzer.recordStackTrace(session.req);
-            Fuzz.fuzzer.recordMarker(session.req, list);
+            Fuzzer.recordStackTrace(session.req);
+            Fuzzer.recordMarker(session.req, list);
         }
         catch (e) {
             //$lab:coverage:off$

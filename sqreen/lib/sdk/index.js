@@ -8,7 +8,7 @@ const Hoek = require('../../vendor/hoek/lib/index');
 const PatchFunction = require('../instrumentation/functionPatcher').patchFunction;
 const Record = require('../instrumentation/record');
 const Logger = require('../logger');
-// const Fuzz = require('../fuzzer');
+// const Fuzzer = require('../fuzzer');
 const SDK_TYPE = require('../enums/sdk').TYPE;
 
 const MODULE = {
@@ -66,7 +66,7 @@ const extAuthTrack = module.exports.auth_track = function (request, success, rec
         reqRecord.user = record;
         // This request has been replayed by the agent, we can skip the log
         //$lab:coverage:off$
-        /*if (Fuzz.hasFuzzer() && Fuzz.fuzzer.isRequestReplayed(req)) {
+        /*if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
             //$lab:coverage:on$
             return;
         }*/

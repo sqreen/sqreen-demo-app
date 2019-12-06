@@ -13,12 +13,12 @@ const Features = require('./features');
 const IpWhitelist = require('../instrumentation/whitelist');
 const Login = require('../backend/login');
 const Actions = require('../actions/index');
-const Fuzz = require('../fuzzer');
+const Fuzzer = require('../fuzzer');
 
 const callReveal = function (action) {
 
-    if (Fuzz.hasFuzzer()) {
-        return Fuzz.main[action]();
+    if (Fuzzer.hasFuzzer()) {
+        return Fuzzer[action]();
     }
     return Promise.reject(new Error('Reveal is only supported for Node.js >= 6.0.0'));
 };

@@ -11,7 +11,7 @@ const Whitelist = require('../whitelist');
 const Utils = require('../../util');
 const Actions = require('../../actions/index');
 const Budget = require('../budget');
-const Fuzz = require('../../fuzzer');
+const Fuzzer = require('../../fuzzer');
 
 const isEmitter = module.exports.isEmitter = module.exports._isEmitter = function (emitter) {
 
@@ -86,9 +86,9 @@ module.exports.enable = function (module, identity) {
 
         if (type === 'request') {
             //$lab:coverage:off$
-            if (Fuzz.hasFuzzer()) {
+            if (Fuzzer.hasFuzzer()) {
                 //$lab:coverage:on$
-                Fuzz.main.registerServer(this);
+                Fuzzer.registerServer(this);
             }
 
             return addListener.apply(this, [type, function (req, res) {

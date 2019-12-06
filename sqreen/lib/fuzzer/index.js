@@ -8,9 +8,9 @@ const Semver = require('semver');
 
 const canLoadReveal = Semver.satisfies(process.version, '>= 6.0.0');
 
-const HOLDER = {};
+const INTERFACE = {};
 
-HOLDER.hasFuzzer = function () {
+INTERFACE.hasFuzzer = function () {
 
     return canLoadReveal;
 };
@@ -18,9 +18,17 @@ HOLDER.hasFuzzer = function () {
 if (canLoadReveal) {
     //$lab:coverage:on$
 
-    HOLDER.main = require('./main');
-    HOLDER.fuzzer = require('./fuzzer');
-    HOLDER.metrics  = require('./metrics');
+    const main = require('./main');
+    INTERFACE.registerServer = main.registerServer;
+    INTERFACE.reload = main.reload;
+    INTERFACE.start = main.start;
+    INTERFACE.stop = main.stop;
+    INTERFACE.METRICTYPE = require('./metrics').METRICTYPE;
+    const fuzzer = require('./fuzzer');
+    INTERFACE.isRequestReplayed = fuzzer.isRequestReplayed;
+    INTERFACE.updateRequestMetric = fuzzer.updateRequestMetric;
+    INTERFACE.recordStackTrace = fuzzer.recordStackTrace;
+    INTERFACE.recordMarker = fuzzer.recordMarker;
 }
 
-module.exports = HOLDER;
+module.exports = INTERFACE;
