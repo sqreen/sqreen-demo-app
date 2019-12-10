@@ -26,13 +26,11 @@ const METRICTYPE = require('./metrics').METRICTYPE;
 // reveal public interface version implemented by the agent
 const INTERFACE = 1;
 
-const lock = new AsyncLock();
+const ASYNC_LOCK = new AsyncLock();
 
 // enforce reveal commands to be executed sequentially
-const lockReveal = (cbk) => lock.acquire('reveal', cbk);
+const REVEAL_LOCK = (cbk) => ASYNC_LOCK.acquire('reveal', cbk);
 
-// Send stats every N fuzzed requests
-const sendStatsEvery = 250;
 // FIXME: support multiple servers?
 // Current active nodejs HTTP server
 let SERVER;
@@ -106,7 +104,7 @@ const reloadRuntime = function (runtime) {
  */
 module.exports.reload = function () {
 
-    return lockReveal(() =>
+    return REVEAL_LOCK(() =>
 
         BackEnd.reveal_runtime(Agent.SESSION_ID(), { interface: INTERFACE })
             .then((runtime) => {
@@ -152,7 +150,7 @@ const startFuzzerSafe = function (run) {
  */
 module.exports.start = function () {
 
-    return lockReveal(() => {
+    return REVEAL_LOCK(() => {
 
         if (!ready()) {
             return Promise.reject(new Error('Reveal is not ready.'));
@@ -170,14 +168,6 @@ module.exports.start = function () {
                 return runid;
             });
     });
-};
-
-const shouldPushStats = (fuzzer) => {
-
-    if (!STATE.isRunning() || fuzzer.fuzzed < 1) {
-        return false;
-    }
-    return (fuzzer.fuzzed - 1) % sendStatsEvery === 0;
 };
 
 const recordMutatedRequest = (request) =>
@@ -264,11 +254,6 @@ const startFuzzer = function (rawrun) {
     // we are now running
     STATE.running();
 
-    const sendStats = (done) => {
-
-        return recordStats(fuzzer.runstats, done);
-    };
-
     const fuzzerDone = function (timeout) {
 
         try {
@@ -276,7 +261,7 @@ const startFuzzer = function (rawrun) {
 
             Logger.INFO(`Reveal has successfully executed the current run (${runID}).`);
 
-            sendStats(true);
+            recordStats(fuzzer.runstats, true);
         }
         finally {
             STATE.stopped();
@@ -285,6 +270,16 @@ const startFuzzer = function (rawrun) {
 
     // setup event handlers
     //
+    fuzzer.on('stats', (stats) => {
+
+        // $lab:coverage:off$
+        if (!STATE.isRunning()) {
+            return;
+        }
+        // $lab:coverage:on$
+        recordStats(stats, false);
+    });
+
     fuzzer.on('request_new', (req, newreq) => {
 
         Logger.INFO('Reveal found a new interesting mutated request.');
@@ -354,17 +349,6 @@ const startFuzzer = function (rawrun) {
                 .end((req, _res) => {
 
                     fuzzer.finalizeRequest(req, mutatedReq);
-
-                    if (shouldPushStats(fuzzer)) {
-                        sendStats(false);
-                    }
-                    // $lab:coverage:off$
-                    // don't keep persistent data in express
-                    // TODO: find a better way...
-                    if (req && req.session && req.session.destroy) {
-                        req.session.destroy();
-                    }
-                    // $lab:coverage:on$
                 });
         }
         return !!STATE.isRunning();
@@ -420,7 +404,7 @@ const stopAsync = function () {
  */
 module.exports.stop = function () {
 
-    return lockReveal(() =>
+    return REVEAL_LOCK(() =>
 
         stopAsync()
             .then((res) => {

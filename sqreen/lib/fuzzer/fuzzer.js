@@ -43,7 +43,6 @@ const Fuzzer = module.exports = class extends Events {
         this._runtime = runtime;
         this._id = this._runtime.initFuzzer(run);
 
-        this._fuzzedreqs = 0;
         this._mutationsdone = false;
         this._handledreqs = 0;
         this._timeout = null;
@@ -99,16 +98,6 @@ const Fuzzer = module.exports = class extends Events {
     get runstats() {
 
         return this._runtime.getRunStats(this._id);
-    }
-
-    /**
-     * Retrieve the number of requests fuzzed.
-     *
-     * @returns {number} Fuzzed requests.
-     */
-    get fuzzed() {
-
-        return this._fuzzedreqs;
     }
 
     //$lab:coverage:off$
@@ -183,8 +172,12 @@ const Fuzzer = module.exports = class extends Events {
         if (ret.unique) {
             this._onNewRequest(req, ret);
         }
+        if (ret.stats !== undefined) {
+            this._onStats(ret.stats);
+        }
         this._handledreqs--;
         this._onRequestDone(req);
+        this._cleanupRequest(req);
         if (this._mutationsdone && this._handledreqs <= 0) {
             this._onDone();
         }
@@ -452,15 +445,40 @@ const Fuzzer = module.exports = class extends Events {
         }
     }
 
+    /**
+     * Cleanup a request (and related resources) after replaying it.
+     *
+     * @param {IncomingMessage} _req - An input request object.
+     */
+    _cleanupRequest(_req) {
+
+        const req = /** @type object */ (_req);
+        // $lab:coverage:off$
+        // don't keep persistent data in express
+        // TODO: find a better way...
+        if (req && req.session && req.session.destroy) {
+            req.session.destroy();
+        }
+        // $lab:coverage:on$
+    }
+
+    _onStats(stats) {
+
+        this.emit('stats', stats);
+    }
+
     _onRequestDone(req) {
 
-        this._fuzzedreqs++;
         this.emit('request_done', req);
     }
 
     _onNewRequest(req, res) {
 
-        this.emit('request_new', req, res.updated);
+        // $lab:coverage:off$
+        if (res.updated !== undefined) {
+            // $lab:coverage:on$
+            this.emit('request_new', req, res.updated);
+        }
     }
 
     _onDone() {

@@ -227,8 +227,9 @@ export interface PseudoIteratorResult<T> {
 export interface FuzzRequestResult {
     success: boolean;           // True if request has been successfully replayed
     unique: boolean;            // True if request is unique (new code coverage)
-    updated?: InputRequest;     // An updated input request based on mutated one
     hash: number;               // Code coverage identifier
+    updated?: InputRequest;     // An updated input request based on mutated one (if any)
+    stats?: RunStats;           // Intermediate statistics (if any)
 }
 
 export interface RevealInterfaceV1 {
