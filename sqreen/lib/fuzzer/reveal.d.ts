@@ -72,19 +72,6 @@ export type FuzzID = number;
 export type ReqID = number;
 
 /**
- * Fuzzer options (the public ones).
- */
-export interface Options {
-    engine: {
-        timeout: number;    // Fuzzing session global timeout (~maximum time)
-        throughput: {
-            batch: number;  // Number of requests to send in a row
-            delay: number;  // Delay (in ms) between each batch
-        };
-    };
-}
-
-/**
  * Supported URI schemes.
  */
 export type Protocol = 'http:' | 'https:';
@@ -137,6 +124,19 @@ export interface Request extends RequestInterface {
 export interface Corpus {
     defaults: InputRequest;     // An input request used as a template
     requests: InputRequest[];   // Input requests used as references to generate mutated ones
+}
+
+/**
+ * Fuzzer options (the public ones).
+ */
+export interface Options {
+    engine: {
+        timeout: number;    // Fuzzing session global timeout (~maximum time)
+        throughput: {
+            batch: number;  // Number of requests to send in a row
+            delay: number;  // Delay (in ms) between each batch
+        };
+    };
 }
 
 /**
@@ -222,7 +222,15 @@ export interface PseudoIteratorResult<T> {
 }
 
 /**
- * The results of a request being replayed.
+ * The result of a request after being replayed.
+ */
+export interface RequestResult {
+    statuscode: number;               // Response status code
+    headers: Record<string, string>;  // Response headers (as raw key/value)
+}
+
+/**
+ * The fuzzer result of a request after being replayed.
  */
 export interface FuzzRequestResult {
     success: boolean;           // True if request has been successfully replayed
@@ -337,10 +345,11 @@ export interface RevealInterfaceV1 {
      * @param {FuzzID} id - A fuzzer reference.
      * @param {ReqID} rid - A request reference.
      * @param {Request} request - The mutated input request.
+     * @param {RequestResult} result - The request result.
      *
      * @returns {FuzzRequestResult | null} The results of the request being replayed, null in case of failure.
      */
-    finalizeRequest(id: FuzzID, rid: ReqID, request: Request): FuzzRequestResult | null;
+    finalizeRequest(id: FuzzID, rid: ReqID, request: Request, result: RequestResult): FuzzRequestResult | null;
 
     /**
      * Terminate a request.

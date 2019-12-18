@@ -346,9 +346,9 @@ const startFuzzer = function (rawrun) {
 
                     fuzzer.initRequest(req, mutatedReq);
                 })
-                .end((req, _res) => {
+                .end((req, res) => {
 
-                    fuzzer.finalizeRequest(req, mutatedReq);
+                    fuzzer.finalizeRequest(req, res, mutatedReq);
                 });
         }
         return !!STATE.isRunning();

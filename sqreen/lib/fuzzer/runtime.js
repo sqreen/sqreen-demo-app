@@ -18,6 +18,7 @@
  * @typedef {import('./reveal').Trace} Trace
  * @typedef {import('./reveal').StackTrace} StackTrace
  * @typedef {import('./reveal').MetricRecord} MetricRecord
+ * @typedef {import('./reveal').RequestResult} RequestResult
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
  * @typedef {import('./reveal').PseudoIteratorResult<Request[]>} RequestsIteratorResult
  */
@@ -225,12 +226,13 @@ module.exports.RuntimeV1 = class extends Runtime {
      * @param {FuzzID} id - A fuzzer reference.
      * @param {ReqID} rid - A request reference.
      * @param {Request} request - The mutated input request.
+     * @param {RequestResult} result - The request result.
      *
      * @returns {FuzzRequestResult | null} The results of the request being replayed, null in case of failure.
      */
-    finalizeRequest(id, rid, request) {
+    finalizeRequest(id, rid, request, result) {
 
-        return this._runInContext(this._api_finalizeRequest)(id, rid, request);
+        return this._runInContext(this._api_finalizeRequest)(id, rid, request, result);
     }
 
     /**

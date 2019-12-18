@@ -9,18 +9,17 @@ const Trace = require('./trace');
 
 /**
  * @typedef {import('./reveal').Request} Request
+ * @typedef {import('./reveal').RequestResult} RequestResult
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
- *
+ * @typedef {import('./reveal').MetricKey} MetricKey
+ * @typedef {import('./reveal').MetricType} MetricType
  * @typedef {import('./fuzzer')} Fuzzer
  */
 
 module.exports = class {
-
     /**
      * @param {Fuzzer} fuzzer - A Runtime instance.
      * @param {Request} request - A mutated request.
-     * @typedef {import('./reveal').MetricKey} MetricKey
-     * @typedef {import('./reveal').MetricType} MetricType
      */
     constructor(fuzzer, request) {
 
@@ -43,12 +42,13 @@ module.exports = class {
      * Finalize the request.
      *
      * @param {Request} request - A mutated request.
+     * @param {RequestResult} result - The request result.
      *
      * @returns {FuzzRequestResult}
      */
-    finalize(request) {
+    finalize(request, result) {
 
-        return this._runtime.finalizeRequest(this._fid, this._id, request);
+        return this._runtime.finalizeRequest(this._fid, this._id, request, result);
     }
 
     /**

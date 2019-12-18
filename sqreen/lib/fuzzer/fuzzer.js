@@ -13,6 +13,8 @@ const FuzzUtils = require('./utils');
 
 /**
  * @typedef {import('http').IncomingMessage} IncomingMessage
+ * @typedef {import('http').ServerResponse} ServerResponse
+ * @typedef {import('http').OutgoingHttpHeaders} OutgoingHttpHeaders
  *
  * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
  * @typedef {import('./reveal').Run} Run
@@ -119,7 +121,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Prepare a request (real or fake) before replaying it.
      *
-     * @param {IncomingMessage} _req - An input request object.
+     * @param {IncomingMessage} _req - A native HTTP request.
      * @param {Request} mutated - The mutated input.
      * @returns {boolean} True if request is being replayed by us.
      */
@@ -146,11 +148,12 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Finalize a request (real or fake) after replaying it.
      *
-     * @param {IncomingMessage} req - An input request object.
+     * @param {IncomingMessage} req - A native HTTP request.
+     * @param {ServerResponse} res - A native HTTP response.
      * @param {Request} mutated - The mutated input.
      * @returns {boolean} True if request is being replayed by us.
      */
-    finalizeRequest(req, mutated) {
+    finalizeRequest(req, res, mutated) {
 
         // $lab:coverage:off$
         if (!Fuzzer.isRequestReplayed(req)) {
@@ -162,8 +165,12 @@ const Fuzzer = module.exports = class extends Events {
         if (fuzzerrequest === null) {
             return false;
         }
+        const reqres = {
+            statuscode: res.statusCode || 200,
+            headers: this._extractHeaders(res)
+        };
         // $lab:coverage:on$
-        const ret = fuzzerrequest.finalize(mutated);
+        const ret = fuzzerrequest.finalize(mutated, reqres);
         fuzzerrequest.terminate();
         // $lab:coverage:off$
         if (!ret) {
@@ -312,7 +319,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Record a trace.
      *
-     * @param {IncomingMessage} req - An HTTP request.
+     * @param {IncomingMessage} req - A native HTTP request.
      * @param {string} trace - A 'trace' (anything).
      * @returns {boolean}
      */
@@ -328,7 +335,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Record a stacktrace as a trace.
      *
-     * @param {IncomingMessage} req - An HTTP request.
+     * @param {IncomingMessage} req - A native HTTP request.
      * @returns {boolean}
      */
     static recordStackTrace(req) {
@@ -343,7 +350,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Record markers based on evaluated rules
      *
-     * @param {IncomingMessage} req - An HTTP request.
+     * @param {IncomingMessage} req - A native HTTP request.
      * @param {Array} rules - A list of rules being evaluated.
      * @returns {boolean}
      */
@@ -373,7 +380,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Update / add a request metric
      *
-     * @param {IncomingMessage} req - An HTTP request.
+     * @param {IncomingMessage} req - A native HTTP request.
      * @param {MetricKey} key - A metric key (ex: 'requests.fuzzed').
      * @param {any} value - Update metric using this value.
      * @param {MetricType?} [type] - A metric type (optional on existing metrics).
@@ -392,7 +399,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Test if a request is being replayed.
      *
-     * @param {IncomingMessage} _req - An input request object.
+     * @param {IncomingMessage} _req - A native HTTP request.
      * @returns {boolean} True if request is being replayed by us.
      */
     static isRequestReplayed(_req) {
@@ -406,7 +413,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Get a {FuzzerRequest} object associated to a request.
      *
-     * @param {IncomingMessage} _req - An HTTP request.
+     * @param {IncomingMessage} _req - A native HTTP request.
      *
      * @returns {FuzzerRequest | null}
      */
@@ -448,7 +455,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Cleanup a request (and related resources) after replaying it.
      *
-     * @param {IncomingMessage} _req - An input request object.
+     * @param {IncomingMessage} _req - A native HTTP request.
      */
     _cleanupRequest(_req) {
 
@@ -460,6 +467,25 @@ const Fuzzer = module.exports = class extends Events {
             req.session.destroy();
         }
         // $lab:coverage:on$
+    }
+
+    /**
+     * Extract HTTP headers from a native HTTP response.
+     *
+     * @param {ServerResponse} res - A native HTTP response.
+     *
+     * @returns {Record<string, string>} - HTTP headers.
+     */
+    _extractHeaders(res) {
+
+        const headers = res.getHeaders();
+        /** @type Record<string, string> */
+        const out = {};
+        Object.keys(headers).forEach((key) => {
+
+            out[key] = headers[key].toString();
+        });
+        return out;
     }
 
     _onStats(stats) {
