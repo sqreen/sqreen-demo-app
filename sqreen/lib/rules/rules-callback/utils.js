@@ -135,47 +135,22 @@ module.exports.findLoginArtifact = function (user) {
     return {};
 };
 
-// AsJson
-const clean = function (obj, seen, target) {
 
-    if ((typeof obj !== 'object' && typeof obj !== 'function') || !obj) {
+const CLEAN_CACHE = new WeakMap();
+const starter = function (obj) {
+
+    if (typeof obj !== 'object' || obj === null) {
         return obj;
     }
 
-    if (seen.has(obj)) {
-        return {};
+    const cached = CLEAN_CACHE.get(obj);
+    if (cached === undefined) {
+        const res = limitObject(obj, 0);
+        CLEAN_CACHE.set(obj, res);
+        return res;
     }
 
-    let result = target || {};
-
-    if (Array.isArray(obj)) {
-        result = [];
-    }
-
-    seen.add(obj);
-
-    const keys = Object.keys(obj);
-    for (let i = 0; i < keys.length; ++i) {
-        const key = keys[i];
-        const descriptor = Object.getOwnPropertyDescriptor(obj, key);
-        if (descriptor.get || descriptor.set) {
-            Object.defineProperty(result, key, descriptor);
-        }
-        else {
-            const cleaned = clean(obj[key], seen);
-            result[key] = cleaned;
-            if (cleaned === null || cleaned === undefined) {
-                result[key] = {};
-            }
-        }
-    }
-
-    return result;
-};
-
-const starter = function (obj) {
-
-    return clean(obj, new Set(), {});
+    return cached;
 };
 
 module.exports.asJson = starter;

@@ -16,6 +16,8 @@ const Feature = require('../command/features');
 const FORMAT_VERSION = '20171208';
 const Logger = require('../logger');
 
+const WAF_RULE_NAME_START = 'waf_node'; // FIXME: remove when we do the proper thing in the WAF lib
+
 const STORE = module.exports.STORE = new WeakMap();
 let INSTRU_ENABLED = false;
 
@@ -70,6 +72,7 @@ const Record = class {
             this.timeStart = process.hrtime();
         }
         this.isRevealReplayed = !!req.__sqreen_replayed;
+        this.wafAttack = undefined;
     }
 
     attack(atk, rpid) {
@@ -78,6 +81,11 @@ const Record = class {
 
         if (rpid) {
             this.rulespack_id = rpid;
+        }
+        if (atk.rule_name !== undefined && atk.rule_name.indexOf(WAF_RULE_NAME_START) === 0) {
+            this.mustReport = true;
+            this.wafAttack = atk; // there should be only 1 waf attack
+            return;
         }
         this.observed.attacks.push(atk);
     }
@@ -145,7 +153,15 @@ const Record = class {
 
         if (this.mustReport || this.shouldReport()) {
             Logger.INFO(`Reporting Request Record with ${this.observed.sdk.length} SDK events`);
-            this.request = ReportUtil.mapRequestAndArrayHeaders(req, this.reportPayload);
+            const sanitized = [];
+            this.request = ReportUtil.mapRequestAndArrayHeaders(req, this.reportPayload, sanitized);
+            if (sanitized.length > 0 && this.wafAttack) {
+                this.wafAttack.infos.waf_data = JSON.stringify(ReportUtil.safeFromArray(JSON.parse(this.wafAttack.infos.waf_data), sanitized, 0));
+            }
+            if (this.wafAttack) {
+                this.observed.attacks.push(this.wafAttack);
+                this.wafAttack = undefined;
+            }
             this.response = {
                 status: res.statusCode
             };

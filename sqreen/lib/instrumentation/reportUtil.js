@@ -70,7 +70,7 @@ const mapRequest = module.exports.mapRequest = function (req, withPayload) {
 
 const MAX_ROUNDS = 10;
 const SAFETY = '<Redacted by Sqreen>';
-const safe = function (data, i) {
+const safe = function (data, i, sanitized) {
 
     const conf = Config.getConfig();
 
@@ -89,19 +89,42 @@ const safe = function (data, i) {
 
             if ((stripKeys.has(key)) ||
                 (typeof data[key] === 'string' && stripValues.find((re) => data[key].match(re)) !== undefined)) {
+                sanitized.push(data[key]);
                 data[key] = SAFETY;
                 return;
             }
             if (data[key] !== null && typeof data[key] === 'object') {
-                return safe(data[key], i + 1);
+                return safe(data[key], i + 1, sanitized);
             }
         });
     return data;
 };
 
-module.exports.mapRequestAndArrayHeaders = function (req, withPayload) {
+const safeFromArray = module.exports.safeFromArray = function (data, toSanitize, n) {
 
-    const res = safe(mapRequest(req, withPayload), 0);
+    if (n === MAX_ROUNDS) {
+        return data;
+    }
+    if (typeof data !== 'object' || data === null) {
+        return data;
+    }
+    const keyList = Object.keys(data);
+    for (let i = 0; i < keyList.length; ++i) {
+        const key = keyList[i];
+        if (typeof data[key] !== 'string') {
+            safeFromArray(data[key], toSanitize, n + 1);
+            continue;
+        }
+        if (toSanitize.indexOf(data[key]) > -1) {
+            data[key] = SAFETY;
+        }
+    }
+    return data;
+};
+
+module.exports.mapRequestAndArrayHeaders = function (req, withPayload, sanitized) {
+
+    const res = safe(mapRequest(req, withPayload), 0, sanitized);
     const heads = [];
     const keys = Object.keys(res.headers);
     for (let i = 0; i < keys.length; ++i) {

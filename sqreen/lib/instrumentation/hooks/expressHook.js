@@ -52,9 +52,11 @@ module.exports = function (identity, module) {
                     for (let i = previousOffset; i < this.stack.length; ++i) {
                         const layer = this.stack[i];
                         //$lab:coverage:off$
-                        if (layer && layer.regexp && !layer.regexp.fast_slash) {
-                            //$lab:coverage:on$
-                            layer.__mountpath = str;
+                        if (layer) {
+                            if (layer.regexp && !layer.regexp.fast_slash) {
+                                //$lab:coverage:on$
+                                layer.__mountpath = str;
+                            }
                             layer.__parentMountKey = this.__mountKey;
                         }
                     }
@@ -85,7 +87,7 @@ module.exports = function (identity, module) {
                 // TODO: test with exception handler!
                 try {
 
-                    if (req.__lastPath !== undefined && req.__lastPath.parent !== undefined && req.__lastPath.parent === layer.__parentMountKey) { // the two layers are siblings, they have the same parent, let's remove the previous one
+                    if (req.__lastPath !== undefined && req.__lastPath.parent !== undefined && req.__lastPath.parent === layer.__parentMountKey && req.__lastPath.addedPath.length > 0) { // the two layers are siblings, they have the same parent, let's remove the previous one
                         //$lab:coverage:off$
                         const r0 = req.__route === undefined ? '' : req.__route;
                         //$lab:coverage:on$

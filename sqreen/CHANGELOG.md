@@ -2,6 +2,59 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+
+## [1.38.1]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* Sqreen to report request when the only attack is a WAF one.
+
+### Security
+
+N/A
+
+
+## [1.38.0]
+### Added
+
+N/A
+
+### Changed
+
+* WAF attacks are parsed to apply data scrubbing to it
+* RASP request sanitization has been made faster
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* Express endpoint detection works with sibling middlewares
+
+### Security
+
+N/A
+
 ## [1.37.2]
 ### Added
 
