@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2019 Sqreen. All Rights Reserved.
+ * Copyright (c) 2016 - 2020 Sqreen. All Rights Reserved.
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
@@ -150,6 +150,11 @@ const Record = class {
     }
 
     report(req, res) {
+
+        if (INSTRU_ENABLED === false) {
+            Logger.INFO('Not reporting Request Record as agent is disabled.');
+            return;
+        }
 
         if (this.mustReport || this.shouldReport()) {
             Logger.INFO(`Reporting Request Record with ${this.observed.sdk.length} SDK events`);

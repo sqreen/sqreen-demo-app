@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2019 Sqreen. All Rights Reserved.
+ * Copyright (c) 2016 - 2020 Sqreen. All Rights Reserved.
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
@@ -42,11 +42,28 @@ const hashValIncludes = function (str, obj, minValueSize, depth) {
     return false;
 };
 
+const isEmpty = function (val) {
+
+    if (val === undefined || val === null) {
+        return true;
+    }
+
+    if (typeof val === 'string' || Array.isArray(val)) {
+        return val.length < 1;
+    }
+    else if (typeof val === 'object') {
+        return Object.keys(val).length < 1;
+    }
+    return false;
+};
+
 const operators = {
     '%and': (a, b) => a && b,
     '%or': (a, b) => a || b,
     '%equals': (a, b) => a === b,
     '%not_equals': (a, b) => a !== b,
+    '%empty': (a) => isEmpty(a),
+    '%not_empty': (a) => !isEmpty(a),
     '%gt': (a, b) => a > b,
     '%gte': (a, b) => a >= b,
     '%lt': (a, b) => a < b,

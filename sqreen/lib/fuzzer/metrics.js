@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2016 - 2019 Sqreen. All Rights Reserved.
+ * Copyright (c) 2016 - 2020 Sqreen. All Rights Reserved.
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+
 /**
- * Known Sqreen event types
+ * A metric type is changing the way raw metric values are used.
  */
 module.exports.METRICTYPE = {
     UNKOWN: 0,

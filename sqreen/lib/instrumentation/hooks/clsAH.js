@@ -224,9 +224,9 @@ class Namespace {
             return context;
         }
         catch (exception) {
-            if (exception) {
-                exception[ERROR_SYMBOL] = context;
-            }
+            // if (exception) {
+            //     exception[ERROR_SYMBOL] = context;
+            // } // FIXME: remove someday
             throw exception;
         }
         finally {
@@ -263,9 +263,9 @@ class Namespace {
                 return fn.apply(this, arguments);
             }
             catch (exception) {
-                if (exception) {
-                    exception[ERROR_SYMBOL] = context;
-                }
+                // if (exception) {
+                //     exception[ERROR_SYMBOL] = context;
+                // } // FIXME: remove someday
                 throw exception;
             }
             finally {

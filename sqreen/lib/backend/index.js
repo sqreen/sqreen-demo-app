@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016 - 2019 Sqreen. All Rights Reserved.
+ * Copyright (c) 2016 - 2020 Sqreen. All Rights Reserved.
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 /**
@@ -14,8 +14,8 @@ const WAP = require('./wreckAsPromised');
 const Util = require('../util');
 const Utils = require('util');
 
-const DELAY_RETRY = 10000;
-const NB_RETRY = 300;
+const DELAY_RETRY = 1000;
+const NB_RETRY = 6;
 
 /**
  * Sqreen response filter on status
@@ -44,11 +44,11 @@ const getRequest = function (options, nbRetry) {
         return Promise.reject(new Error(`unhandled verb ${options.method}`));
     }
     for (let i = 0; i < nbRetry; ++i) {
-        const delay = Math.min(i * DELAY_RETRY, 5 * 60 * 1000); // 5 minutes max
+        const delay = Math.min(i * DELAY_RETRY, 60 * 1000); // 1 minute max
         prom = prom.catch((err) => {
 
             if (err && err.statusCode === 401) {
-                return  Promise.reject(err);
+                return Promise.reject(err);
             }
             return Util.timeout(delay).then(() => getRequest(options));
         });
@@ -60,6 +60,7 @@ const getRequest = function (options, nbRetry) {
  * unique method to execute queries on the client
  * @param {object} options objects
  * @param {string} verb (http verbs)
+ * @param {?number} nb_retry
  */
 const LoggedRp = module.exports._LoggedRp = function (options, verb, nb_retry) {
 
