@@ -6,6 +6,7 @@
 const Runner = require('./../runner');
 const Hoek = require('../../../vendor/hoek/lib/index');
 const Exception = require('../../exception/index');
+const Features = require('../../command/features');
 const Logger = require('../../logger');
 const AsJson = require('./utils').asJson;
 const Util = require('./utils'); // TODO: explain this to CTO
@@ -169,6 +170,10 @@ const Run = class {
                     filtered_request_params.params = session.params;
                     filtered_request_params.body = session.body;
                     return filtered_request_params;
+                },
+                '#.features': () => {
+
+                    return Features.read();
                 }
             };
             if (session.__sqreen_lookup && session.__sqreen_lookup.hapi) {

@@ -24,6 +24,7 @@ const featureHolder = module.exports.featureHolder = {
     call_counts_metrics_period: 60,
     whitelisted_metric: true,
     rules_signature: true,
+    reveal_sampling_ratio: 5,
     perf_level: 1,
     perf_base: 2,
     perf_unit: 0.1,
@@ -82,6 +83,7 @@ const commands = {
 
         DefaultMetrics.enableCallCount(value);
     },
+    reveal_sampling_ratio: function (value) {}, // state holding
     rules_signature: function (value) {}, // state holding
     whitelisted_metric: function (value) {}, // state holding
     max_radix_size: function (value) {}, // state holding
