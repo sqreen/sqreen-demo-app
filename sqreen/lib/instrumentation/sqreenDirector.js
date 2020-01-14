@@ -7,6 +7,9 @@ const Logger = require('../logger');
 const Util = require('../util');
 const Semver = require('semver');
 let instrumented = {};
+/**
+ * @type {{ [string]: Set }}
+ */
 let callbackWaiting = {};
 /**
  * instrumented looks like:
@@ -41,16 +44,16 @@ const isWaiting = function (moduleName) {
 
 const addToWaiting = module.exports._addToWaiting = function (updatePayload) {
 
-    callbackWaiting[updatePayload.moduleName] = callbackWaiting[updatePayload.moduleName] || [];
-    callbackWaiting[updatePayload.moduleName].push(updatePayload);
+    callbackWaiting[updatePayload.moduleName] = callbackWaiting[updatePayload.moduleName] || new Set();
+    callbackWaiting[updatePayload.moduleName].add(updatePayload);
 };
 
 const stopWaiting = module.exports._stopWaiting = function (moduleName) {
 
-    const cbList = callbackWaiting[moduleName] || [];
+    const cbSet = callbackWaiting[moduleName] || new Set();
     callbackWaiting[moduleName] = null;
-    for (let i = 0; i < cbList.length; ++i ) {
-        update(cbList[i]);
+    for (const item of cbSet) {
+        update(item);
     }
 };
 

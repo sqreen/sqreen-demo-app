@@ -2,6 +2,30 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.38.3]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* Sqreen will not retry to patch an unexisting module in an exponential growth
+
+### Security
+
+N/A
 
 ## [1.38.2]
 ### Added

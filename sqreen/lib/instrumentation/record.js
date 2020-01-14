@@ -15,6 +15,7 @@ const SDK_TYPE = require('../enums/sdk').TYPE;
 const Feature = require('../command/features');
 const FORMAT_VERSION = '20171208';
 const Logger = require('../logger');
+const Fuzzer = require('../fuzzer');
 
 const WAF_RULE_NAME_START = 'waf_node'; // FIXME: remove when we do the proper thing in the WAF lib
 
@@ -71,7 +72,9 @@ const Record = class {
         if (this.perfMon === true) {
             this.timeStart = process.hrtime();
         }
-        this.isRevealReplayed = !!req.__sqreen_replayed;
+        // $lab:coverage:off$
+        this.isRevealReplayed = Fuzzer.hasFuzzer() ? Fuzzer.isRequestReplayed(req) : false;
+        // $lab:coverage:on$
         this.wafAttack = undefined;
     }
 
