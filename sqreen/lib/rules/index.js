@@ -12,6 +12,7 @@ const Director = require('../instrumentation/sqreenDirector');
 const CallbackBuilder = require('./rules-callback/callbackBuilder');
 const Metric = require('../metric');
 const Cap = require('./exceptions');
+const Config = require('../config').getConfig();
 
 
 module.exports.rulespack = '';
@@ -160,9 +161,7 @@ const collectHookPointsInstructions = module.exports._collectHookPointsInstructi
     return result;
 };
 
-module.exports.enforceRuleList = function (ruleList, doNotVerifySignature) {
-
-    Logger.INFO(`load ${ruleList.length} rules`);
+const prepareRuleList = function (ruleList) {
 
     ruleList.forEach((rule) => {
 
@@ -170,8 +169,31 @@ module.exports.enforceRuleList = function (ruleList, doNotVerifySignature) {
             rule.exception_cap = new Cap(rule);
         }
     });
+};
 
-    const enforcable = collectHookPointsInstructions(loadRuleList(ruleList, doNotVerifySignature));
+module.exports.enforceRuleList = function (ruleList, doNotVerifySignature) {
+
+    Logger.INFO(`load ${ruleList.length} rules`);
+
+    prepareRuleList(ruleList);
+
+    let hookpoints = loadRuleList(ruleList, doNotVerifySignature);
+
+    // load local rules (without checking signatures if asked)
+    if (Config && Array.isArray(Config._local_rules)) {
+        const local_rules = Hoek.clone(Config._local_rules);
+        prepareRuleList(local_rules);
+        // enforce rules pack as local
+        local_rules.forEach((rule) => {
+
+            rule.rulesPack = 'local';
+        });
+
+        ruleList = ruleList.concat(local_rules);
+        hookpoints = hookpoints.concat(loadRuleList(local_rules, !Config.rules_verify_signature));
+    }
+
+    const enforcable = collectHookPointsInstructions(hookpoints);
 
     const keys = Object.keys(enforcable);
     if (keys.length === 0) {

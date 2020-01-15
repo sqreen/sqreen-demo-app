@@ -63,8 +63,7 @@ const parseConfig = function (rawConfig) {
 
     if (config.local_rules) {
         try {
-            const Rules = require('../rules'); // load here and not at the beginning of the script to prevent circular import issue
-            Rules.enforceRuleList(JSON.parse(Fs.readFileSync(config.local_rules, 'utf-8')), !config.rules_verify_signature);
+            config._local_rules = JSON.parse(Fs.readFileSync(config.local_rules, 'utf-8'));
         }
         catch (err) {
             Logger.DEBUG(`Could not load local rules ${err}`);

@@ -372,7 +372,8 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
         process.__sqreen_cb = true; // place a lock: two callbacks cannot run at the same time
         result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, actualBudget, actualMoniBudget);
         process.__sqreen_cb = false; // remove lock
-        if (isReveal === true && result[i].data_points !== undefined) {
+        // TODO: remove this once legacy reveal_collect_req rule is removed
+        if (isReveal === true && Array.isArray(result[i].data_points) && result[i].data_points[0].params === undefined) {
             result[i].payload = true;
         }
     }
