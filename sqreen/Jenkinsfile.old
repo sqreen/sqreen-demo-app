@@ -1,15 +1,31 @@
-String[] TARGETS = ["4.8", "4", "6.13.1", "6",
-                        "7.5", "7",
-                        "8.0.0", "8", "9.10.1", "9", "10.0.0", "10", "11.4.0", "11",
-                        "8.0.0-alpine", "8-alpine", "9.10.1-alpine", "9-alpine", "10-alpine", "11-alpine",
-                    "12.0.0", "12", "12-alpine"]
+String[] TARGETS = ["4.8", "4",
+                    "6.13.1", "6",
+                    "7.5", "7",
+                    "8.0.0", "8",
+                    "9.10.1", "9",
+                    "10.0.0", "10",
+                    "11.4.0", "11",
+                    "12.0.0", "12",
+                    "13.0.0", "13",
+                    "8.0.0-alpine", "8-alpine",
+                    "9.10.1-alpine", "9-alpine",
+                    "10-alpine", "11-alpine", "12-alpine", "13-alpine"]
 
 Object RUNNING_TARGETS = [:]
 TARGETS.each { it ->
     RUNNING_TARGETS.putAt(it, { test it })
 }
+RUNNING_TARGETS.putAt("nightly_v10", { tryTest("v10", "vdeturckheim/node_nightly") })
 RUNNING_TARGETS.putAt("nightly_v12", { tryTest("v12", "vdeturckheim/node_nightly") })
 RUNNING_TARGETS.putAt("nightly_v13", { tryTest("v13", "vdeturckheim/node_nightly") })
+RUNNING_TARGETS.putAt("nightly_v14", { tryTest("v14", "vdeturckheim/node_nightly") })
+RUNNING_TARGETS.putAt("nightly_v14-v8-canary", { tryTest("v14-v8-canary", "vdeturckheim/node_nightly") })
+
+RUNNING_TARGETS.putAt("v10-rc", { tryTest("v10-rc", "vdeturckheim/node_nightly") })
+RUNNING_TARGETS.putAt("v12-rc", { tryTest("v12-rc", "vdeturckheim/node_nightly") })
+RUNNING_TARGETS.putAt("v13-rc", { tryTest("v13-rc", "vdeturckheim/node_nightly") })
+
+RUNNING_TARGETS.putAt("nightly_v14-v8-canary", { tryTest("v14-v8-canary", "vdeturckheim/node_nightly") })
 
 def runInAWS(String version, String base_image = "node") {
 
@@ -56,6 +72,29 @@ def test(String version, String base_image = "node") {
         tryTest(version, base_image)
     }
 }
+
+def runAuditInAWS(String version, String base_image = "node") {
+
+    withCredentials([[
+                             $class: 'AmazonWebServicesCredentialsBinding',
+                             credentialsId: 'integration_tests_aws',
+                             accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                     ]]) {
+
+        awsCodeBuild \
+                awsAccessKey: env.AWS_ACCESS_KEY_ID, \
+                awsSecretKey: env.AWS_SECRET_ACCESS_KEY, \
+                buildSpecFile: 'buildspec-audit.yml', \
+                credentialsType: 'keys', \
+                envVariables: "[ { NODE_VERSION, ${version} }, { BASE_IMAGE, ${base_image} } ]", \
+                projectName: "sqreen-agent-nodejs", \
+                region: 'eu-west-1', \
+                sourceControlType: 'jenkins',
+                exceptionFailureMode: 'ENABLED'
+    }
+}
+RUNNING_TARGETS["audit"] = { runAuditInAWS("12") }
 
 def runIntegrationTests() {
     stage('build images') {

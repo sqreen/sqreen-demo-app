@@ -3,6 +3,7 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+const SqreenSDK = require('sqreen-sdk');
 const CB_STATUS = require('../enums/cbReturn').STATUS;
 const CONST_CB = require('../enums/cbTypes');
 const Director = require('./sqreenDirector');
@@ -62,9 +63,7 @@ const report = function (cbResult, err, record) {
 
     cbResult.rule = cbResult.rule || {};
 
-    const session = cbResult.originalSession || cbResult.session || {};
-
-    const req = session.req;
+    const req = getRequest(cbResult);
     //$lab:coverage:off$
     if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
         //$lab:coverage:on$
@@ -88,18 +87,18 @@ const report = function (cbResult, err, record) {
         rule_name: cbResult.rule.name,
         rulespack_id: cbResult.rule.rulesPack,
         infos: cbResult.record,
-        params: session.req && ReportUtil.mapRequestParams(session.req),
-        request: session.req && ReportUtil.mapRequest(session.req),
+        params: req && ReportUtil.mapRequestParams(req),
+        request: req && ReportUtil.mapRequest(req),
 
         block: cbResult.rule.block,
         test: cbResult.rule.test,
         beta: cbResult.rule.beta,
         learning: cbResult.rule.learning,
 
-        headers: session.req && getHeaders(session.req)
+        headers: req && getHeaders(req)
     };
 
-    atk.client_ip = Utils.getXFFOrRemoteAddress(session.req);
+    atk.client_ip = Utils.getXFFOrRemoteAddress(req);
 
     atk.request = atk.request || {};
     atk.request.addr = atk.client_ip;
@@ -107,11 +106,16 @@ const report = function (cbResult, err, record) {
     (new Attack(atk, err)).report();
 };
 
-const getRecord = function (cbResult) {
+const getRequest = function (cbResult) {
 
     const session = cbResult.originalSession || cbResult.session || {};
 
-    const req = session.req;
+    return session.req;
+};
+
+const getRecord = function (cbResult) {
+
+    const req = getRequest(cbResult);
     let record;
     if (req !== undefined && req !== null && req.__sqreen_uuid !== undefined && (record = Record.STORE.get(req)) !== undefined) {
         return record;
@@ -162,6 +166,32 @@ const performRecordAndObservation = function (resultList) {
             if (result.data_points) {
                 record = record || getRecord(result);
                 writeDataPoints(result, result.rule, date, record);
+            }
+            if (result.single_point) {
+                const rule = result.rule;
+                result.single_point
+                    .forEach((line) => {
+
+                        const point = new SqreenSDK.Point(line.signal_name, `single_point:${rule.rulespack}:${rule.name}`);
+                        point.payload = line.payload;
+                        point.payload_schema = line.payload_schema;
+                        point.batch();
+                    });
+            }
+            //$lab:coverage:off$
+            if (Fuzzer.hasFuzzer() && result.fuzzer_signals) {
+                //$lab:coverage:on$
+                const req = getRequest(result);
+
+                //$lab:coverage:off$
+                if (Fuzzer.isRequestReplayed(req)) {
+                    //$lab:coverage:on$
+                    result.fuzzer_signals
+                        .forEach((signal) => {
+
+                            Fuzzer.recordSignal(req, signal);
+                        });
+                }
             }
             if (result.payload) {
                 record = record || getRecord(result);
@@ -373,7 +403,7 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
         result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, actualBudget, actualMoniBudget);
         process.__sqreen_cb = false; // remove lock
         // TODO: remove this once legacy reveal_collect_req rule is removed
-        if (isReveal === true && Array.isArray(result[i].data_points) && result[i].data_points[0].params === undefined) {
+        if (isReveal === true && Array.isArray(result[i].data_points) && result[i].data_points.length > 0 && result[i].data_points[0].params === undefined) {
             result[i].payload = true;
         }
     }
@@ -386,7 +416,6 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
         //$lab:coverage:on$
         try {
             Fuzzer.recordStackTrace(session.req);
-            Fuzzer.recordMarker(session.req, list);
         }
         catch (e) {
             //$lab:coverage:off$

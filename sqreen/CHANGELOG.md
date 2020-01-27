@@ -52,6 +52,31 @@ N/A
 
 N/A
 
+## [1.38.2]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* Sqreen will not attach current context to exceptions
+
+### Security
+
+N/A
+
 ## [1.38.1]
 ### Added
 

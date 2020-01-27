@@ -63,7 +63,7 @@ module.exports.dropRequest = function (args) {
     drop(args);
 };
 
-const keptClaims = ['params', 'query', 'headers', 'body', 'cookies', 'url', 'originalUrl', 'method', '__route', '__sqreen_url', 'urls']; // mostly express here
+const keptClaims = ['params', 'query', 'headers', 'body', 'cookies', 'url', 'originalUrl', 'method', '__route', '__sqreen_url', '__sqreen_replayed', 'urls']; // mostly express here
 module.exports.getLookableClaims = function (request) {
 // TODO: make that clear !!
     if (!request) {

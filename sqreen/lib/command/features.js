@@ -8,6 +8,7 @@ const EventActions = require('../events/action');
 const Event = require('../events');
 const Agent = require('../agent');
 const DefaultMetrics = require('../metric/default');
+const SqreenSDK = require('sqreen-sdk');
 
 let INSTRU_ON = false;
 
@@ -74,10 +75,18 @@ const commands = {
         else {
             EventActions.enableBatch({ batch_size: value });
         }
+        try { // TODO: seriously?!
+            SqreenSDK.Signal.prototype.BATCH.maxSize = value;
+        }
+        catch (_) {}
     },
     max_staleness: function (value){
 
         EventActions.enableBatch({ max_staleness: value * 1000 });
+        try { // TODO: seriously?!
+            SqreenSDK.Signal.prototype.BATCH.maxAgeMS = value * 1000;
+        }
+        catch (_) {}
     },
     call_counts_metrics_period: function (value) {
 

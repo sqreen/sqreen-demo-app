@@ -7,6 +7,7 @@
 
 /** @typedef {import ('vm').Script} Script
  *
+ * @typedef {import('./reveal').Environment} Environment
  * @typedef {import('./reveal').FuzzID} FuzzID
  * @typedef {import('./reveal').ReqID} ReqID
  * @typedef {import('./reveal').RunID} RunID
@@ -70,6 +71,7 @@ module.exports.RuntimeV1 = class extends Runtime {
 
         this._api_getInterfaceVersion = this._importAPI('getInterfaceVersion');
         this._api_getRuntimeVersion = this._importAPI('getRuntimeVersion');
+        this._api_validateEnv = this._importAPI('validateEnv');
         this._api_validateRun = this._importAPI('validateRun');
         this._api_initFuzzer = this._importAPI('initFuzzer');
         this._api_getRunID = this._importAPI('getRunID');
@@ -109,6 +111,18 @@ module.exports.RuntimeV1 = class extends Runtime {
     // $lab:coverage:on$
 
     /**
+     * Validate an environment (agent / application related metadata).
+     *
+     * @param {Record<string, any>} rawenv - A raw (potentially invalid) Environment object.
+     *
+     * @returns {Environment | null}  A (valid) Environment object.
+     */
+    validateEnv(rawenv) {
+
+        return this._runInContext(this._api_validateEnv)(rawenv);
+    }
+
+    /**
      * Validate an input run.
      *
      * @param {Record<string, any>} rawrun - A raw (potentially invalid) input run.
@@ -123,13 +137,14 @@ module.exports.RuntimeV1 = class extends Runtime {
     /**
      * Create a new fuzzer instance for a given Run.
      *
+     * @param {Environment} env - Agent environment.
      * @param {Run} run - An input run.
      *
      * @returns {FuzzID | null} A fuzzer reference (or null in case of failure).
      */
-    initFuzzer(run) {
+    initFuzzer(env, run) {
 
-        return this._runInContext(this._api_initFuzzer)(run);
+        return this._runInContext(this._api_initFuzzer)(env, run);
     }
 
     /**

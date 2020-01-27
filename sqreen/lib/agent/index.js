@@ -8,6 +8,8 @@
  * It is responsible for enabling the Sqreen avent loop
  */
 'use strict';
+const SqreenSDK = require('sqreen-sdk');
+
 const Logger = require('../logger');
 const BackEnd = require('../backend');
 const Command = require('../command');
@@ -139,6 +141,11 @@ const heartBeatLoopStarter = module.exports.heartBeatLoopStarter = function (opt
     // MetricReport.startReport({ interval: options.firstInterval, lifetime: options.changeIntervalAfter }, { interval: options.secondInterval });
 };
 
+const reportSignalBatch = function (batch) {
+
+    return BackEnd.signal_batch(SESSION_ID, batch).catch(() => {});
+};
+
 let currentLogin = null;
 /**
  * Starts the agent with the provided config
@@ -153,7 +160,7 @@ module.exports.start = function (Config, requiredBefore) {
 
     requiredBefore = requiredBefore || [];
 
-    currentLogin =  BackEnd.login(Config.token, Config.app_name)
+    currentLogin = BackEnd.login(Config.token, Config.app_name)
         .then((session_id) => {
 
             currentLogin = null;
@@ -189,6 +196,11 @@ If you think this is an error, please report it to Sqreen team.`;
                 const message = new Message(Message.KIND.first_require, text, { libs: requiredBefore });
                 message.report().catch(() => {});
             }
+        })
+        .then(() => {
+
+            // init standalone SDK
+            SqreenSDK.initBatch(Features.featureHolder.batch_size, Features.featureHolder.max_staleness / 1000, reportSignalBatch);
         });
 
     return currentLogin;

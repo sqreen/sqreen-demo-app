@@ -1,0 +1,11 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
+      - docker build . --build-arg node_version=${NODE_VERSION} --build-arg base_image=${BASE_IMAGE} -t agent/test
+      - docker run agent/test npm run audit

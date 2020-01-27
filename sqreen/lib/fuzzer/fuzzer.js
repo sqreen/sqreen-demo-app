@@ -6,16 +6,19 @@
 'use strict';
 
 const Events = require('events');
+const Semver = require('semver');
 
-const METRICTYPE = require('./metrics').METRICTYPE;
 const FuzzerRequest = require('./request');
 const FuzzUtils = require('./utils');
+
+const supportGetHeaders = Semver.satisfies(process.version, '>= 7.7.0');
 
 /**
  * @typedef {import('http').IncomingMessage} IncomingMessage
  * @typedef {import('http').ServerResponse} ServerResponse
  * @typedef {import('http').OutgoingHttpHeaders} OutgoingHttpHeaders
  *
+ * @typedef {import('./reveal').Environment} Environment
  * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
  * @typedef {import('./reveal').Run} Run
  * @typedef {import('./reveal').Options} Options
@@ -23,31 +26,52 @@ const FuzzUtils = require('./utils');
  * @typedef {import('./reveal').Request} Request
  * @typedef {import('./reveal').MetricKey} MetricKey
  * @typedef {import('./reveal').MetricType} MetricType
+ * @typedef {import('./reveal').MetricRecord} MetricRecord
+ * @typedef {import('./reveal').Trace} Trace
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
  * @typedef {import('./reveal').PseudoIteratorResult<Request[]>} RequestsIteratorResult
  *
- * @typedef {import('./http').FuzzerIncomingMessage} FuzzerIncomingMessage
+ * @typedef {import('./runtime').RuntimeV1} Runtime
  *
  * @typedef {import('./request')} FuzzerRequest
  *
- * @typedef {import('./runtime').RuntimeV1} Runtime
+ * @typedef {{
+ *     __sqreen_replayed: boolean,
+ *     __sqreen_fuzzerrequest: FuzzerRequest
+ * } & IncomingMessage} FuzzerIncomingMessage
+ *
+ * @typedef {{
+ *     trace?: Trace,
+ *     metric?: MetricRecord
+ * }} FuzzerSignal
  */
 
 const Fuzzer = module.exports = class extends Events {
     /**
      * @param {Runtime} runtime - A Runtime instance.
+     * @param {Environment} env - Agent environment.
      * @param {Run} run - A run instance.
      */
-    constructor(runtime, run) {
+    constructor(runtime, env, run) {
 
         super();
 
         this._runtime = runtime;
-        this._id = this._runtime.initFuzzer(run);
+        this._id = this._runtime.initFuzzer(env, run);
 
         this._mutationsdone = false;
         this._handledreqs = 0;
         this._timeout = null;
+    }
+
+    /**
+     * @param {Runtime} runtime - A Runtime instance.
+     * @param {object} env - Raw agent environment.
+     * @returns {Environment | null}
+     */
+    static validateEnv(runtime, env) {
+
+        return runtime.validateEnv(env);
     }
 
     /**
@@ -317,6 +341,25 @@ const Fuzzer = module.exports = class extends Events {
 
     // $lab:coverage:off$
     /**
+     * Record a signal (trace, metric, ...).
+     *
+     * @param {IncomingMessage} req - A native HTTP request.
+     * @param {FuzzerSignal} signal - A signal (trace, metric, ...).
+     * @returns {boolean}
+     */
+    static recordSignal(req, signal) {
+
+        let res = true;
+        if (signal.trace) {
+            res = this.recordTrace(req, signal.trace) && res;
+        }
+        if (signal.metric) {
+            const metric = signal.metric;
+            res = this.updateRequestMetric(req, metric.key, metric.value, metric.type) && res;
+        }
+        return res;
+    }
+    /**
      * Record a trace.
      *
      * @param {IncomingMessage} req - A native HTTP request.
@@ -345,36 +388,6 @@ const Fuzzer = module.exports = class extends Events {
             return false;
         }
         return fuzzerrequest.recordStackTrace();
-    }
-
-    /**
-     * Record markers based on evaluated rules
-     *
-     * @param {IncomingMessage} req - A native HTTP request.
-     * @param {Array} rules - A list of rules being evaluated.
-     * @returns {boolean}
-     */
-    static recordMarker(req, rules) {
-
-        if (!req || !rules) {
-            return false;
-        }
-        for (const entry of rules) {
-            const rule = entry.rule || {};
-            let record = false;
-            if (rule.attack_type === 'sql_injection') {
-                this.updateRequestMetric(req, 'markers.sqlops', 1, METRICTYPE.SUM);
-                record = true;
-            }
-            else if (rule.attack_type === 'lfi') {
-                this.updateRequestMetric(req, 'markers.fileops', 1, METRICTYPE.SUM);
-                record = true;
-            }
-            if (record) {
-                this.updateRequestMetric(req, 'markers.rules', rule.name, METRICTYPE.COLLECT);
-            }
-        }
-        return true;
     }
 
     /**
@@ -478,9 +491,15 @@ const Fuzzer = module.exports = class extends Events {
      */
     _extractHeaders(res) {
 
-        const headers = res.getHeaders();
         /** @type Record<string, string> */
         const out = {};
+        // $lab:coverage:off$
+        if (!supportGetHeaders) {
+            // we don't really care not supporting this on old node.js applications
+            return out;
+        }
+        // $lab:coverage:on$
+        const headers = res.getHeaders();
         Object.keys(headers).forEach((key) => {
 
             out[key] = headers[key].toString();

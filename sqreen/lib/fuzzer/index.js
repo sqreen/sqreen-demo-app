@@ -18,17 +18,18 @@ INTERFACE.hasFuzzer = function () {
 if (canLoadReveal) {
     //$lab:coverage:on$
 
+    INTERFACE.METRICTYPE = require('./metrics').METRICTYPE;
     const main = require('./main');
     INTERFACE.registerServer = main.registerServer;
     INTERFACE.reload = main.reload;
     INTERFACE.start = main.start;
     INTERFACE.stop = main.stop;
-    INTERFACE.METRICTYPE = require('./metrics').METRICTYPE;
     const fuzzer = require('./fuzzer');
     INTERFACE.isRequestReplayed = fuzzer.isRequestReplayed;
     INTERFACE.updateRequestMetric = fuzzer.updateRequestMetric;
+    INTERFACE.recordSignal = fuzzer.recordSignal;
+    INTERFACE.recordTrace = fuzzer.recordTrace;
     INTERFACE.recordStackTrace = fuzzer.recordStackTrace;
-    INTERFACE.recordMarker = fuzzer.recordMarker;
 }
 
 module.exports = INTERFACE;

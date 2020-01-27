@@ -283,3 +283,8 @@ module.exports.reveal_post_stats = function (session_id, payload) {
 
     return LoggedRp(getPostOptions(Routes.reveal_stats, { 'x-session-key': session_id }, payload), 'post reveal/stats');
 };
+
+module.exports.signal_batch = function (session_id, payload) {
+
+    return LoggedRp(getPostOptions(Routes.signal_batch, { 'x-session-key': session_id }, payload), 'post signal/batch');
+};

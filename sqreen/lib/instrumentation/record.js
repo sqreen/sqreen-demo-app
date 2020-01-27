@@ -73,7 +73,7 @@ const Record = class {
             this.timeStart = process.hrtime();
         }
         // $lab:coverage:off$
-        this.isRevealReplayed = Fuzzer.hasFuzzer() ? Fuzzer.isRequestReplayed(req) : false;
+        this.isRevealReplayed = Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req);
         // $lab:coverage:on$
         this.wafAttack = undefined;
     }

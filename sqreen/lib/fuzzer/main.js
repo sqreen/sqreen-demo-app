@@ -6,12 +6,13 @@
 'use strict';
 
 /**
+ * @typedef {import('./reveal').Environment} Environment
  * @typedef {import('./reveal').Runtime} Runtime
  * @typedef {import('./reveal').Run} Run
  * @typedef {import('./reveal').Options} Options
  */
 
-const Logger = /** @type {import('./logger').SqreenLogger} */ (require('../logger'));
+const Logger = require('../logger');
 
 const AsyncLock = require('async-lock');
 const BackEnd = require('../backend');
@@ -22,6 +23,12 @@ const Fuzzer = require('./fuzzer');
 const State = require('./state');
 const Signature = require('./signature');
 const METRICTYPE = require('./metrics').METRICTYPE;
+/** @type {string} */
+// @ts-ignore
+const AGENT_VERSION = require('../../package.json').version;
+/** @type {Record<string, string>} */
+// @ts-ignore
+const DEPENDENCIES = require('../../package.json').dependencies;
 
 // reveal public interface version implemented by the agent
 const INTERFACE = 1;
@@ -236,14 +243,31 @@ const startFuzzer = function (rawrun) {
     const run = Fuzzer.validateRun(runtime, rawrun);
     // $lab:coverage:off$
     if (!run) {
+        Logger.ERROR('Reveal received an invalid run.');
+        return;
+    }
+
+    const deps = !!DEPENDENCIES ? Object.keys(DEPENDENCIES) : [];
+    // $lab:coverage:on$
+    /** @type {Environment} */
+    const rawenv = {
+        agent: 'nodejs',
+        version: AGENT_VERSION,
+        dependencies: deps,
+        os: process.platform
+    };
+    const env = Fuzzer.validateEnv(runtime, rawenv);
+    // $lab:coverage:off$
+    if (!env) {
+        Logger.ERROR('Reveal received an invalid environment.');
         return;
     }
     // $lab:coverage:on$
-    const options = run.options;
 
+    const options = run.options;
     //
     // register a new run
-    const fuzzer = new Fuzzer(runtime, run);
+    const fuzzer = new Fuzzer(runtime, env, run);
     if (!fuzzer.isValid()) {
         Logger.ERROR('Reveal failed to init fuzzer with current run.');
         return;

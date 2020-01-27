@@ -51,7 +51,7 @@ const isEmpty = function (val) {
     if (typeof val === 'string' || Array.isArray(val)) {
         return val.length < 1;
     }
-    else if (typeof val === 'object') {
+    if (typeof val === 'object') {
         return Object.keys(val).length < 1;
     }
     return false;

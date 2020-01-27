@@ -13,7 +13,7 @@ const Path = require('path');
 
 const DEFAULT = require('./default');
 
-const LOG_LEVELS = Object.keys(Logger.levels);
+const LOG_LEVELS = Object.keys(Logger.logLevels);
 
 const configSchema = Joi.object().keys({
     url: Joi.string().uri().default(DEFAULT.url),
@@ -57,8 +57,9 @@ const parseConfig = function (rawConfig) {
         return;
     }
     const config = result.value;
-    Logger.transports.console.level = config.log_level;
 
+    Logger.initLogger();
+    Logger.setConsoleLevel(config.log_level);
     Logger.addFileTransport(config.log_location, config.log_level);
 
     if (config.local_rules) {

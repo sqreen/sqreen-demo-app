@@ -13,7 +13,7 @@ export interface RuntimeVersion {
         minor: number;
         patch: number;
         string: string;     // Runtime version as a string (ex: '0.3.3')
-        number: number;     // Runtime version as a number (ex: 0x30003)
+        number: number;     // Runtime version as a number (ex: 0x030003)
     };
 }
 
@@ -59,6 +59,23 @@ export interface Runtime {
     timestamp?: Date;           // Date keeping track of runtime release time.
     flags?: string[];           // Optional flags (reserved).
     signatures: RuntimeSign[];  // Runtime signatures.
+}
+
+/**
+ * Agent identifier.
+ */
+export type AgentID = 'none' | 'go' | 'java' | 'nodejs' | 'php' | 'python' | 'ruby';
+
+/**
+ * Application / agent related data
+ */
+export interface Environment {
+    agent: AgentID;             // Agent identifier
+    version: string;            // Agent version
+    dependencies: string[];     // Application dependencies
+    framework?: string;         // Web framework (express, flask, laravel, ...)
+    server?: string;            // Web server (UWSGI, node, ...)
+    os?: string;                // OS running the agent
 }
 
 /**
@@ -256,6 +273,15 @@ export interface RevealInterfaceV1 {
     getRuntimeVersion(): RuntimeVersion;
 
     /**
+     * Validate an environment (agent / application related metadata).
+     *
+     * @param {object} rawenv - A raw (potentially invalid) Environment object.
+     *
+     * @returns {Environment | null} A (valid) Environment object.
+     */
+    validateEnv(rawenv: object): Environment | null;
+
+    /**
      * Validate an input run.
      *
      * @param {object} rawrun - A raw (potentially invalid) input run.
@@ -267,11 +293,12 @@ export interface RevealInterfaceV1 {
     /**
      * Create a new fuzzer instance for a given Run.
      *
+     * @param {Environment} env - Agent environment.
      * @param {Run} run - An input run.
      *
      * @returns {FuzzID | null} A fuzzer reference (or null in case of failure).
      */
-    initFuzzer(run: Run): FuzzID | null;
+    initFuzzer(env: Environment, run: Run): FuzzID | null;
 
     /**
      * Retrieve the current run identifier.
