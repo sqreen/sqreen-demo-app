@@ -35,7 +35,7 @@
   "post_processing": [],
   "pre_processing": [],
   "priority": 100,
-  "purpose": "monitoring",
+  "purpose": "reveal",
   "security_plugins": [],
   "sqreen_alerting": true,
   "test": true,
