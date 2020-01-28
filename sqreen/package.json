@@ -25,7 +25,6 @@
     "sqreen-check-network": "./bin/sqreen-check-network.js"
   },
   "devDependencies": {
-    "@types/pino": "^5.15.3",
     "bluebird": "^3.4.7",
     "code": "^4.0.0",
     "decache": "^4.3.0",
@@ -72,12 +71,12 @@
     "joi-browser": "^10.6.1",
     "mkdirp": "^0.5.1",
     "on-finished": "^2.3.0",
-    "pino-multi-stream": "3.1.2",
     "recursive-readdir": "^2.1.0",
     "semver": "^5.2.0",
     "shimmer": "^1.2.0",
     "sqreen-sdk": "^0.4.0",
     "uuid": "^3.1.0",
+    "winston": "^2.2.0",
     "zxcvbn": "^4.4.2"
   },
   "dependencies_details": {

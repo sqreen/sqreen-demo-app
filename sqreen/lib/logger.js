@@ -4,47 +4,54 @@
  */
 // @ts-check
 'use strict';
-const Pino = require('pino-multi-stream');
+const Winston = require('winston');
 const Mkdirp = require('mkdirp');
 const Path = require('path');
-const Fs = require('fs');
+
+const logLevels = {
+    UNKNOWN: 0,
+    FATAL: 1,
+    ERROR: 2,
+    WARN: 3,
+    INFO: 4,
+    DEBUG: 5
+};
+
+const formatter = (options) =>  `${options.level.charAt(0)} ${options.timestamp()} ${options.level} --: ${(options.message)}`;
+const timestamp = () => new Date();
 
 /**
- * @typedef {import('pino').BaseLogger} BaseLogger
- * @typedef {import('pino').LogFn} LogFn
+ * @typedef {import('winston').LoggerInstance} LoggerInstance
+ * @typedef {import('winston').LeveledLogMethod} LeveledLogMethod
  *
  * @typedef {{
- *     FATAL: LogFn,
- *     ERROR: LogFn,
- *     WARN: LogFn,
- *     INFO: LogFn,
- *     DEBUG: LogFn,
+ *     FATAL: LeveledLogMethod,
+ *     ERROR: LeveledLogMethod,
+ *     WARN: LeveledLogMethod,
+ *     INFO: LeveledLogMethod,
+ *     DEBUG: LeveledLogMethod,
  * }} SqreenLoggerLevels
  *
  * @typedef {{
+ *   Logger: SqreenLogger,
  *   logLevels: Record<string, string>,
- *   initLogger: () => void,
- *   addFileTransport: (filename: string, level: keyof SqreenLoggerLevels) => void,
- *   setConsoleLevel: (level: keyof SqreenLoggerLevels) => void,
- *   enableLog: (isEnable: boolean) => void
- * } & SqreenLoggerLevels & BaseLogger } SqreenLogger
+ *   addFileTransport: (filename: string, level: keyof SqreenLoggerLevels) => void
+ * } & LoggerInstance & SqreenLoggerLevels} SqreenLogger
  */
 
-const logLevels = {
-    UNKNOWN: 'fatal',
-    FATAL: 'fatal',
-    ERROR: 'error',
-    WARN: 'warn',
-    INFO: 'info',
-    DEBUG: 'debug'
-};
+const Logger = /** @type SqreenLogger */ (new (Winston.Logger)({
+    levels: logLevels,
+    transports: [
+        new (Winston.transports.Console)({
+            level: 'WARN', timestamp, formatter
+        })
+    ]
+}));
 
-let logStreams = [];
+module.exports = Logger;
+module.exports.Logger = Logger;
 
-/** @type SqreenLogger */
-const toExports = {};
-
-toExports.logLevels = {
+module.exports.logLevels = {
     UNKNOWN: 'UNKNOWN',
     FATAL: 'FATAL',
     ERROR: 'ERROR',
@@ -53,62 +60,17 @@ toExports.logLevels = {
     DEBUG: 'DEBUG'
 };
 
-toExports.initLogger = function () {
-
-    logStreams = [
-        {
-            level: 'warn',
-            stream: process.stdout
-        }
-    ];
-
-    bootstrapLogger(logStreams);
-};
-
-toExports.addFileTransport = function (filename, level) {
+module.exports.addFileTransport = function (filename, level) {
 
     if (!filename) {
         return;
     }
-
-    filename = Path.join(Path.dirname(filename), ((new Date()).getTime() + '-' + Path.basename(filename)));
-
-    Mkdirp.sync(Path.dirname(filename)); // ensure path exists
-    logStreams.push({
-        level: logLevels[level],
-        stream: Fs.createWriteStream(filename)
-    });
-
-    bootstrapLogger(logStreams);
-};
-
-toExports.setConsoleLevel = function (level) {
-
-    logStreams[0] = {
-        level: logLevels[level],
-        stream: process.stdout
-    };
-
-    bootstrapLogger(logStreams);
-};
-
-toExports.enableLog = function (isEnable) {
-
-    bootstrapLogger((isEnable !== false) ? logStreams : []);
-};
-
-const bootstrapLogger = function bootstrapLogger(streams) {
-
-    const Logger = Pino({
-        streams
-    });
-
-    for (const logName of Object.keys(logLevels)) {
-        Logger[logName] = Logger[logLevels[logName]];
+    if (Logger.transports.file) {
+        return;
     }
 
-    module.exports = /** @type SqreenLogger */ (Object.assign(Logger, { Logger }, toExports));
+    filename = Path.join(Path.dirname(filename), (new Date()) + '-' + Path.basename(filename));
+
+    Mkdirp.sync(Path.dirname(filename)); // ensure path exists
+    Logger.add(Winston.transports.File, { level, timestamp, filename });
 };
-
-bootstrapLogger(logStreams);
-
