@@ -54,6 +54,13 @@ const countCB = function () {
     return !!Feature.read().call_counts_metrics_period;
 };
 
+const getRequest = function (cbResult) {
+
+    const session = cbResult.originalSession || cbResult.session || {};
+
+    return session.req;
+};
+
 const report = function (cbResult, err, record) {
 
     // TODO: put in setImmediate ?
@@ -104,13 +111,6 @@ const report = function (cbResult, err, record) {
     atk.request.addr = atk.client_ip;
 
     (new Attack(atk, err)).report();
-};
-
-const getRequest = function (cbResult) {
-
-    const session = cbResult.originalSession || cbResult.session || {};
-
-    return session.req;
 };
 
 const getRecord = function (cbResult) {

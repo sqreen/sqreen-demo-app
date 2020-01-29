@@ -38,7 +38,7 @@ module.exports = function (identity, module) {
             }
 
             if (typeof str !== 'string') {
-                return origUse.apply(this, arguments);
+                str = '';
             }
 
             this.__mountKey = this.__mountKey || { };
@@ -86,9 +86,9 @@ module.exports = function (identity, module) {
 
                 // TODO: test with exception handler!
                 try {
-
+                    //$lab:coverage:off$
+                    // case req.__lastPath.parent === undefined is not possible anymore but better safe than sorry
                     if (req.__lastPath !== undefined && req.__lastPath.parent !== undefined && req.__lastPath.parent === layer.__parentMountKey && req.__lastPath.addedPath.length > 0) { // the two layers are siblings, they have the same parent, let's remove the previous one
-                        //$lab:coverage:off$
                         const r0 = req.__route === undefined ? '' : req.__route;
                         //$lab:coverage:on$
                         req.__route = r0.slice(0, -1 * req.__lastPath.addedPath.length);
