@@ -4,7 +4,7 @@
   "private": false,
   "scripts": {
     "start": "node back/app.js",
-    "postinstall": "yarn run build; node back/config/init-db",
+    "postinstall": "rm ./back/config/sqreen-shop-db;yarn run build; node back/config/init-db",
     "nodemon": "nodemon back/app.js",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
