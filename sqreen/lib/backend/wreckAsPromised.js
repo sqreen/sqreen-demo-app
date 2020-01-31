@@ -15,12 +15,13 @@ const Wreck = require('../../vendor/wreck/lib/index').defaults({
 });
 
 const Version = require('../../version.json');
-const CaList = require('../../ca.crt.json');
+// const CaList = require('../../ca.crt.json');
 const Config = require('../config').getConfig();
 
 const proxy = Config && Config.http_proxy;
 
-const agentOption = { maxSockets: Infinity, ca: CaList };
+// const agentOption = { maxSockets: Infinity, ca: CaList };
+const agentOption = { maxSockets: Infinity };
 
 const setupProxy = function (proxyURL) {
 
@@ -67,8 +68,11 @@ const handleResponse = function (resolve, reject) {
             }
             return reject(err);
         }
-        if (response.statusCode !== 200) {
+        if (response.statusCode >= 300) {
             return reject(writeError(response.statusCode, payload));
+        }
+        else if (payload === null) {
+            payload = { status: true };
         }
 
         return resolve(payload);
