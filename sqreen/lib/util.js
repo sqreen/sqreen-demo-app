@@ -156,3 +156,63 @@ module.exports.Queue = class extends Array {
         return out;
     }
 };
+
+/** @typedef {{ in_app: boolean, function: string | null, abs_path: string | null, lineno: number| null }} STLine */
+/**
+ *
+ * @return {[STLine]}
+ */
+module.exports.getMiniStackTrace = function () { // TODO: might be optimized by removing the closure but might kill v8 optims
+
+    const prepareStackTrace = Error.prepareStackTrace;
+    const res = [];
+    Error.prepareStackTrace = function (_, a) {
+
+        for (let i = 0; i < a.length; ++i) {
+            const callSite = a[i];
+            const line = {
+                in_app: true,
+                function: callSite.getFunctionName(),
+                abs_path: callSite.getFileName(),
+                lineno: callSite.getLineNumber()
+            };
+            res.push(line);
+        }
+        return '';
+    };
+    (new Error()).stack;
+    Error.prepareStackTrace = prepareStackTrace;
+    return res;
+};
+
+const STACK_LINE_RE = /^at (.*):|^\s+at (\S+) \((.*):(\d+):/g;
+const STACKLINE_RE_OLD = /^at (.*):(\d+):/g;
+/**
+ *
+ * @param {string} line
+ * @return {null | STLine}
+ */
+module.exports.parseStackTraceLine = function (line) {
+
+    STACK_LINE_RE.lastIndex = 0;
+    STACKLINE_RE_OLD.lastIndex = 0;
+    const match = STACK_LINE_RE.exec(line);
+    if (match !== null) {
+        return {
+            in_app: true,
+            function: match[1],
+            abs_path: match[2],
+            lineno: parseInt(match[3])
+        };
+    }
+    const matchOld = STACKLINE_RE_OLD.exec(line.trim());
+    if (matchOld === null) {
+        return null;
+    }
+    return {
+        in_app: true,
+        function: '',
+        abs_path: matchOld[1],
+        lineno: parseInt(matchOld[2])
+    };
+};

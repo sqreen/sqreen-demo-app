@@ -3,13 +3,15 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+const SqreenSDK = require('sqreen-sdk');
+const SignalUtils = require('../signals/utils');
 const Metric = require('./index');
 
 module.exports = class extends Metric {
 
-    constructor(metric, options) {
+    constructor(metric, options, source) {
 
-        super(metric);
+        super(metric, source);
         this.base = options.base;
         this.factor = options.factor;
         this.logBase = Math.log(this.base);
@@ -19,9 +21,20 @@ module.exports = class extends Metric {
         this._initCurrent();
     }
 
-    isEmpty() {
+    getSignal(now) {
 
-        return this.currentValue.v.max === 0; // only max
+        if (this.currentValue.v.max === 0) { // in that case, it is empty
+            return null;
+        }
+        const signal = new SqreenSDK.Metric(`sq.agent.metric.${this.name}`, this.source, this.periodS, this.timestamp, now, undefined);
+        signal.payload_schema = SignalUtils.PAYLOAD_SCHEMA.BINNING_METRIC;
+        signal.payload.kind = this.kind;
+        signal.payload.max = this.currentValue.v.max;
+        signal.payload.base = this.base;
+        signal.payload.unit = this.factor;
+        signal.payload.bins = this.currentValue.v;
+        signal.payload.bins.max = undefined;
+        return signal;
     }
 
     _initCurrent() {

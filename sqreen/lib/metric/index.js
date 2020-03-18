@@ -5,27 +5,24 @@
 'use strict';
 const METRIC_STORE = new Map();
 const Exception = require('../exception');
+const SqreenSDK = require('sqreen-sdk');
+const SignalUtils = require('../signals/utils');
 
 let toReport = [];
 
-const getName = function (metric) {
-
-    return metric.name;
-};
-
 module.exports = class {
 
-    constructor(metric) {
+    constructor(metric, options, source) {
 
-        const name = getName(metric);
+        const name = metric.name;
         if (METRIC_STORE.has(name)) {
             throw new Error('metric exists');
         }
+        this.source = source || 'sq.agent.default';
         this.name = name;
-        this.metricName = metric.name;
+        this.kind = metric.kind.toLowerCase();
         this.currentValue = {};
-        this.currentObjectValue = {};
-        this.currentObjectValueKeys = new Set();
+        this.currentKeys = new Map();
         this.timestamp = new Date();
 
         const seconds = this.timestamp.getSeconds();
@@ -37,13 +34,40 @@ module.exports = class {
         this.timestamp.setSeconds(seconds - delta);
 
         this.period = metric.period * 1000;
+        this.periodS = metric.period;
 
         METRIC_STORE.set(name, this);
     }
 
-    get values() {
+    resetCurrent(now) {
 
-        return toReport.filter((x) => x.name === this.metricName);
+        this.timestamp = now;
+        this.currentKeys.clear();
+        this.currentValue = {};
+    }
+
+    getValues() {
+
+        const values = [];
+        for (const keyTuple of this.currentKeys) {
+            values.push({
+                key: keyTuple[1],
+                value: this.currentValue[keyTuple[0]]
+            });
+        }
+        return values;
+    }
+
+    getSignal(now) {
+
+        if (this.currentKeys.size === 0) {
+            return null;
+        }
+        const values = this.getValues();
+        const signal = new SqreenSDK.Metric(`sq.agent.metric.${this.name}`, this.source, this.periodS, this.timestamp, now, values);
+        signal.payload_schema = SignalUtils.PAYLOAD_SCHEMA.METRIC;
+        signal.payload.kind = this.kind;
+        return signal;
     }
 
     process(date, force) {
@@ -52,54 +76,24 @@ module.exports = class {
         date = date || now;
 
         if (date - this.timestamp > this.period || force) {
-            if (this.build) {
-                this.build();
+            const result = this.getSignal(now);
+            if (result !== null) {
+                toReport.push(result);
             }
-            if (this.isEmpty && this.isEmpty() === true) {
-                this.currentValue = {};
-                this.timestamp = now;
-                return this.currentValue;
-            }
-            const payload = {
-                start: this.timestamp,
-                finish: now,
-                observation: this.currentValue,
-                object_observation: Array.from(this.currentObjectValueKeys)
-                    .map((key) => ({ key: JSON.parse(key), value: this.currentObjectValue[key] })),
-                name: this.metricName
-            };
-            if (typeof payload.observation === 'object') {
-                if (Object.keys(payload.observation).length > 0 || payload.object_observation.length > 0) {
-                    toReport.push(payload);
-                }
-            }
-            else {
-                toReport.push(payload);
-            }
-
-            this.currentValue = {};
-            this.currentObjectValue = {};
-            this.currentObjectValueKeys = new Set();
-            this.timestamp = now;
+            this.resetCurrent(now);
+            return result;
         }
-        return this.currentValue;
+        return null;
     }
 
-    observe(force) {
+    observe(date, force) {
 
-        this.process(null, force);
-        return this.values;
+        return this.process(date, force);
     }
 
-    get report() {
+    getReport(date, force) {
 
-        // no breaking changes
-        return this.getReport(false);
-    };
-
-    getReport(force) {
-
-        return this.observe(force);
+        return this.observe(date, force);
     };
 };
 
@@ -110,24 +104,24 @@ const METRIC_KINDS = {
     Binning: require('./binning')
 };
 
-module.exports.getMetric = function (metric, options) {
+module.exports.getMetric = function (metric, options, source) {
 
     metric = metric || {};
 
-    const name = getName(metric);
+    const name = metric.name;
     if (METRIC_STORE.has(name)) {
         const val = METRIC_STORE.get(name);
         val.period = metric.period * 1000;
+        val.source = source || 'sqreen:agent:default';
         return val;
     }
     if (METRIC_KINDS[metric.kind]) {
-        return new METRIC_KINDS[metric.kind](metric, options);
+        return new METRIC_KINDS[metric.kind](metric, options, source);
     }
     return null;
 
 };
 
-module.exports.getName = getName;
 module.exports.getMetricByName = function (name) {
 
     return METRIC_STORE.get(name);
@@ -191,13 +185,22 @@ module.exports.addObservations = function (observationList, date) {
 
 module.exports.getAllReports = function (force) {
 
-    if (force === true) {
-        Array.from(METRIC_STORE.values())
-            .forEach((metric) => metric.getReport(force));
+    if (require('../command/features').featureHolder.use_signals === false) {
+        // drop all
+        toReport = [];
+        return;
     }
-    const result = toReport;
+
+    if (force === true) {
+        const date = new Date();
+        Array.from(METRIC_STORE.values())
+            .forEach((metric) => metric.getReport(date, force));
+    }
+    for (let i = 0; i < toReport.length; ++i) {
+        toReport[i].batch();
+    }
     toReport = [];
-    return result;
+    return [];
 };
 
 module.exports._METRIC_STORE = METRIC_STORE;

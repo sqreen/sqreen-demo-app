@@ -8,35 +8,29 @@ const Util = require('./util');
 
 module.exports = class extends Metric {
 
-    add(key_, value, date) {
+    add(realKey, value, date) {
 
-        const key = Util.getKey(key_);
-        if (key === null) {
+        const strKey = Util.getKey(realKey);
+        if (strKey === '') {
             return;
         }
         this.process(date);
-        if (typeof key_ === 'string') {
-            this.currentValue[key] = this.currentValue[key] || { value: 0, length: 0 };
-            this.currentValue[key].value += value;
-            this.currentValue[key].length++;
-        }
-        else {
-            this.currentObjectValue[key] = this.currentObjectValue[key] || { value: 0, length: 0 };
-            this.currentObjectValue[key].value += value;
-            this.currentObjectValue[key].length++;
-            this.currentObjectValueKeys.add(key);
-        }
-
+        this.currentKeys.set(strKey, realKey);
+        this.currentValue[strKey] = this.currentValue[strKey] || { value: 0, length: 0 };
+        this.currentValue[strKey].value += value;
+        this.currentValue[strKey].length++;
     }
 
-    build() {
+    getValues() {
 
-        const current = this.currentValue;
-        this.currentValue = {};
-
-        Object.keys(current).forEach((key) => {
-
-            this.currentValue[key] = current[key].value / current[key].length;
-        });
+        const values = [];
+        for (const keyTuple of this.currentKeys) {
+            const curr = this.currentValue[keyTuple[0]];
+            values.push({
+                key: keyTuple[1],
+                value: curr.value / curr.length
+            });
+        }
+        return values;
     }
 };

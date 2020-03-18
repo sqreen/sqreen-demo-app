@@ -1,6 +1,6 @@
 {
   "name": "sqreen",
-  "version": "1.38.3",
+  "version": "1.38.4",
   "main": "index.js",
   "scripts": {
     "test": "lab -cLv -a code -t 100 -R -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
@@ -9,7 +9,7 @@
     "pretest-ci-win": "mkdir -p coverage",
     "test-ci": "npm i --no-save hapi@16.6 express@4 supertest@3.3 passport-local @hapi/hoek && lab -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
     "test-ci-win": "npm i --no-save hapi@16.6 express@4 supertest@3.3 passport-local @hapi/hoek && lab -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
-    "posttest-ci": "npm version && rm -r *.logs",
+    "posttest-ci": "npm version",
     "outdated": "npm outdated",
     "preversion": "node preversion.js",
     "install-tests": "npm i --no-save hapi@16.6 express@4 supertest@3.3 passport-local @hapi/hoek",
@@ -74,7 +74,7 @@
     "recursive-readdir": "^2.1.0",
     "semver": "^5.2.0",
     "shimmer": "^1.2.0",
-    "sqreen-sdk": "^0.4.0",
+    "sqreen-sdk": "^0.6.2",
     "uuid": "^3.1.0",
     "winston": "^2.2.0",
     "zxcvbn": "^4.4.2"

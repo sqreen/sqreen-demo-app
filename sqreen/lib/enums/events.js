@@ -12,5 +12,15 @@ module.exports.TYPE = {
     REQUEST_RECORD: 'request_record',
     SDK_TRACK: 'sdk_track',
     AGENT_MESSAGE: 'agent_message',
-    DATA_POINT: 'data_point'
+    DATA_POINT: 'data_point',
+    SIGNAL_LOG: 'signal_log',
+    SIGNAL_METRIC: 'signal_metric',
+    SIGNAL_TRACE: 'signal_trace'
+};
+
+module.exports.OTHER_TYPES = {
+    METRIC: 'metric',
+    BUNDLE: 'bundle',
+    LOGIN: 'login',
+    HEART_BEAT: 'beat'
 };

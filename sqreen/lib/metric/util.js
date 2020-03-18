@@ -3,6 +3,10 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+/**
+ * @param {?} key
+ * @return {string}
+ */
 module.exports.getKey = function (key) {
 
     if (typeof key === 'string') {
@@ -14,7 +18,7 @@ module.exports.getKey = function (key) {
     catch (err) {
 
         // should we report? I am afraid it would be too much
-        return null;
+        return '';
     }
 };
 

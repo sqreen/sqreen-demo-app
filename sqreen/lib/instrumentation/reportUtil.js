@@ -134,6 +134,7 @@ module.exports.mapRequestAndArrayHeaders = function (req, withPayload, sanitized
         }
     }
     res.headers = heads;
+    res.isRevealReplayed = !!req.__sqreen_replayed;
     return res;
 };
 

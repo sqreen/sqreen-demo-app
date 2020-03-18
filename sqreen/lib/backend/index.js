@@ -21,7 +21,9 @@ const NB_RETRY = 6;
  * Sqreen response filter on status
  * @param response
  */
-const handleResponse = function (response) {
+const handleResponse = module.exports._handleResponse = function (response) {
+
+    response = response === null ? { status: 'ok' } : response;
 
     if (response.status) {
         return Promise.resolve(response);
@@ -93,6 +95,7 @@ const LoggedRp = module.exports._LoggedRp = function (options, verb, nb_retry) {
  * @param uri
  * @param headers
  * @param body
+ * @return {{headers: *, method: string, body: *, uri: string}}
  */
 const getPostOptions = function (uri, headers, body) {
 
@@ -107,6 +110,7 @@ const getPostOptions = function (uri, headers, body) {
  * @param uri
  * @param headers
  * @param query
+ * @return {{headers: *, method: string, query: *, uri: string}}
  */
 const getGetOptions = function (uri, headers, query) {
 
@@ -209,9 +213,18 @@ module.exports.actionspack = function (session_id) {
 
 module.exports.heartBeat = function (session_id) {
 
+    const useSignals = require('../command/features').featureHolder.use_signals;
+    let metrics = [];
+    if (useSignals === true) {
+        require('../metric').getAllReports(true);
+    }
+    else {
+        metrics = require('../../lib_old/metric').getAllReports(true);
+    }
+
     return LoggedRp(getPostOptions(Routes.beat, { 'x-session-key': session_id }, {
         command_results: require('../command').getResponses(),
-        metrics: require('../metric').getAllReports(true)
+        metrics
     }), 'heartbeat');
 };
 

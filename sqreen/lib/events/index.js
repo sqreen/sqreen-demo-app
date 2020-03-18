@@ -3,6 +3,8 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+const SDK = require('sqreen-sdk');
+const Converter = require('../signals/translate');
 const Logger = require('../logger');
 const Action = require('./action');
 const TYPES = require('../enums/events').TYPE;
@@ -63,6 +65,19 @@ module.exports.writeEvent = function (type, evt) {
         knownEvts[type].add(evt.klass);
     }
 
+    if (require('../command/features').featureHolder.use_signals === true) {
+        const transform = Converter.TRANSFORMS[type];
+        //$lab:coverage:off$
+        if (transform !== undefined) {//$lab:coverage:on$
+            const signal = transform(evt);
+            signal.batch();
+            if (force) {
+                SDK.Signal.prototype.BATCH.report();
+            }
+            return Promise.resolve();
+        }
+    }
+
     return new Promise((resolve) => {
 
         // It could be a setTimeout(f,0) if we do want to put this at the real end of the event loop
@@ -87,5 +102,11 @@ module.exports.writeEvent = function (type, evt) {
 
 module.exports.drain = function () {
 
+    //$lab:coverage:off$
     Action.reportBatch(eventQueue);
+    try {
+        require('sqreen-sdk').Trace.prototype.BATCH.report();
+    }
+    catch (_) {}
+    //$lab:coverage:on$
 };

@@ -6,7 +6,7 @@
 const Logger = require('../logger');
 const EVENT = require('../enums/events');
 const BackEnd = require('../backend');
-const Agent = require('../agent');
+const Agent = require('../../lib/agent');
 
 let BATCH_MODE = false;
 let batchSize = 100;

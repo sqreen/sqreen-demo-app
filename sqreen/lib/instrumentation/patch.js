@@ -12,15 +12,26 @@ const Logger = require('../logger');
 const RuleUtil = require('../rules/rules-callback/utils');
 const Attack = require('../constructors/attack');
 const ReportUtil = require('./reportUtil');
-const Metrics = require('../metric');
 const Config = require('../config').getConfig() || {};
 const Exception = require('../exception');
 const Utils = require('../util');
 const InstrumentationUtils = require('./utils');
 const Feature = require('../command/features');
 const PreConditions = require('./preConditions');
-const Record = require('./record');
 const Fuzzer = require('../fuzzer');
+
+const getMetrics = function () {
+
+    if (Feature.featureHolder.use_signals === true) {
+        return require('../metric');
+    }
+    return require('../../lib_old/metric');
+};
+
+const findRecord = function (req) {
+
+    return require('./record').STORE.get(req) || require('../../lib_old/instrumentation/record').STORE.get(req);
+};
 
 const Budget = require('./budget');
 
@@ -61,6 +72,12 @@ const getRequest = function (cbResult) {
     return session.req;
 };
 
+/**
+ *
+ * @param cbResult
+ * @param {Error} err
+ * @param {RecordTrace} record // TODO: I must be a real record someday
+ */
 const report = function (cbResult, err, record) {
 
     // TODO: put in setImmediate ?
@@ -78,21 +95,28 @@ const report = function (cbResult, err, record) {
     }
     if (record !== null) {
         const rule = cbResult.rule;
-        const ruleName = rule.name;
-        record.attack({
-            rule_name: ruleName,
-            test: rule.test,
-            block: rule.block,
-            infos: cbResult.record,
-            time: new Date(),
-            backtrace: (new Error(ruleName)).stack.split('\n') // TODO: use 'prepareStackTrace' ?
-        }, cbResult.rule.rulesPack);
+
+        if (record.isLegacyRecord === true) {
+            const ruleName = rule.name;
+            record.attack({
+                rule_name: ruleName,
+                test: rule.test,
+                block: rule.block,
+                infos: cbResult.record,
+                time: new Date(),
+                backtrace: (new Error(ruleName)).stack.split('\n') // TODO: use 'prepareStackTrace' ?
+            }, cbResult.rule.rulesPack);
+            return;
+        }
+
+        record.attack(rule.name, rule.attack_type, rule.test, rule.block, rule.beta, cbResult.record, new Date(), Utils.getMiniStackTrace(), rule.rulesPack);
         return;
     }
 
     const atk = {
         rule_name: cbResult.rule.name,
         rulespack_id: cbResult.rule.rulesPack,
+        attack_type: cbResult.rule.attack_type,
         infos: cbResult.record,
         params: req && ReportUtil.mapRequestParams(req),
         request: req && ReportUtil.mapRequest(req),
@@ -117,7 +141,7 @@ const getRecord = function (cbResult) {
 
     const req = getRequest(cbResult);
     let record;
-    if (req !== undefined && req !== null && req.__sqreen_uuid !== undefined && (record = Record.STORE.get(req)) !== undefined) {
+    if (req !== undefined && req !== null && req.__sqreen_uuid !== undefined && (record = findRecord(req)) !== undefined) {
         return record;
     }
     return null;
@@ -130,19 +154,52 @@ const observe = function (cbResult, date, record) {
         return;
     }
     const observations = cbResult.observations;
-    Metrics.addObservations(observations, date);
+    getMetrics().addObservations(observations, date);
 };
 
 const writeDataPoints = function (cbResult, rule, date, record) {
 
-    const DataPoint = require('../data_point/index').DataPoint;
-    const dataPointList = cbResult.data_points.map((item) => new DataPoint(DataPoint.KIND.RULE, rule.rulesPack, rule.name, item, date));
-    if (record !== null) {
-        record.pushDataPoints(dataPointList);
-        return null;
+    if (record !== null && record.isLegacyRecord === true || Feature.featureHolder.use_signals === false) {
+
+        const DataPoint = require('../data_point/index').DataPoint;
+        const dataPointList = cbResult.data_points.map((item) => new DataPoint(DataPoint.KIND.RULE, rule.rulesPack, rule.name, item, date));
+        //$lab:coverage:off$
+        if (record !== null) {
+            //$lab:coverage:on$
+            record.pushDataPoints(dataPointList);
+            return null;
+        }
+        //$lab:coverage:off$
+        DataPoint.reportList(dataPointList);
+        return;
+        //$lab:coverage:on$
     }
+
+    const RULE = require('../data_point/index').DataPoint.KIND.RULE;
+    if (record !== null) {
+        for (let i = 0; i < cbResult.data_points.length; ++i) {
+            record.dataPoint(RULE, `${rule.rulesPack}:${rule.name}`, cbResult.data_points[i], date);
+        }
+        return;
+    }
+
+    const DataPoint = require('../data_point/index').DataPoint; // TODO: all these fallbacks are to be simplified as points directly
+    const dataPointList = cbResult.data_points.map((item) => new DataPoint(DataPoint.KIND.RULE, rule.rulesPack, rule.name, item, date));
     DataPoint.reportList(dataPointList);
 };
+
+const writeSignals = function (result, rule, date, record) {
+
+    record.makeReport();
+    for (let i = 0; i < result.signals.length; ++i) {
+        const signal = result.signals[i];
+        const point = record.addPoint(signal.name, `sqreen:rule:${rule.rulesPack}:${rule.name}`, signal.payload, date);
+        point.trigger = result.trigger;
+        point.payload_schema = result.payload_schema;
+    }
+
+};
+
 
 const performRecordAndObservation = function (resultList) {
 
@@ -166,6 +223,10 @@ const performRecordAndObservation = function (resultList) {
             if (result.data_points) {
                 record = record || getRecord(result);
                 writeDataPoints(result, result.rule, date, record);
+            }
+            if (result.signals) {
+                record = record || getRecord(result);
+                writeSignals(result, result.rule, date, record);
             }
             if (result.single_point) {
                 const rule = result.rule;
@@ -196,7 +257,14 @@ const performRecordAndObservation = function (resultList) {
             if (result.payload) {
                 record = record || getRecord(result);
                 if (record) {
-                    record.reportPayload = true;
+                    //$lab:coverage:off$
+                    if (record.isLegacyRecord === true) {
+                        record.reportPayload = true;
+                    }
+                    else {
+                        record._meta.reportPayload = true;
+                    }
+                    //$lab:coverage:off$
                 }
             }
         }
@@ -244,7 +312,7 @@ const actOnCbResult = function (resultList, session) {
 
                         if (session.req && session.res) {
                             RuleUtil.dropRequest(['', session.req, session.res]);
-                            if (!session.req.__sqreen_uuid && Metrics.getMetricByName(HTTP_CODE)) { // the tracing has not been performed: the request has no id and no tail
+                            if (!session.req.__sqreen_uuid && getMetrics().getMetricByName(HTTP_CODE)) { // the tracing has not been performed: the request has no id and no tail
                                 performRecordAndObservation([{ observations: [[HTTP_CODE, 500, 1]] }]);
                             }
                         }
@@ -295,6 +363,14 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
         return {};
     }
 
+    let trigger = null;
+    if (rule.sampler !== undefined) {
+        trigger = rule.sampler.shouldCollectAndTick();
+        if (trigger === null) {
+            return {};
+        }
+    }
+
     // VM will refuse values under 1ms as a perf budget, let's update remain but not the current budget value
     const timeout = remain;
 
@@ -307,6 +383,7 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
             result.session = session;
             result.rule = rule;
             result.params = { args, value };
+            result.trigger = trigger;
             if (rule.exception_cap !== undefined) {
                 rule.enabled = rule.exception_cap.tick(false);
             }
@@ -346,20 +423,33 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
                 return {};
             }
             let record;
-            if (req !== undefined && req !== null && req.__sqreen_uuid !== undefined && (record = Record.STORE.get(req)) !== undefined) {
-                record.except({
-                    klass: Error.name,
-                    message: err.message,
-                    infos: {
-                        args: err.args,
-                        waf: err.waf
-                    },
-                    rule_name: err.ruleName || null,
-                    time: new Date(),
-                    context: {
-                        backtrace: err.stack.split('\n')
-                    }
-                });
+            if (req !== undefined && req !== null && req.__sqreen_uuid !== undefined && (record = findRecord(req)) !== undefined) {
+
+                if (record.isLegacyRecord === true) {
+                    record.except({
+                        klass: Error.name,
+                        message: err.message,
+                        infos: {
+                            args: err.args,
+                            waf: err.waf
+                        },
+                        rule_name: err.ruleName,
+                        time: new Date(),
+                        context: {
+                            backtrace: err.stack.split('\n')
+                        }
+                    });
+                    return {};
+                }
+
+                // Probably cleaner to do that where we do it for attacks too? Or maybe do attack closer to the exit of the cb!
+                record.except(err.name,
+                    err.message,
+                    { args: err.args, waf: err.waf },
+                    rule.name,
+                    rule.rulesPack,
+                    new Date(),
+                    e.stack.split('\n').map(Utils.parseStackTraceLine));
                 return {};
             }
             Exception.report(err).catch(() => {});
@@ -576,7 +666,7 @@ class Patch {
                             args[args.length - 1] = function () { // Some perversion might happen here based on the function's name or length. Let's keep an eye on this in the future.
 
                                 session.budget.startCount(CONST_CB.TYPE.ASYNC_POST, session.monitBudget);
-                                actOnCbResult(self.runAsyncPost(args, leakArgs(arguments), this, session, session.budget), session);
+                                actOnCbResult(self.runAsyncPost(args, leakArgs.apply(this,  arguments), this, session, session.budget), session);
                                 session.budget.stopCount(session.monitBudget);
                                 // no action possible
                                 session.budget.stopCount();
@@ -684,7 +774,7 @@ const logExec = function (cbList, kind) {
 
         if (callCount[key] >= interval - 1) {
 
-            Metrics.addObservations([
+            getMetrics().addObservations([
                 [
                     'sqreen_call_counts',
                     key,

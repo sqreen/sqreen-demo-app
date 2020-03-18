@@ -3,24 +3,28 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+const SqreenSDK = require('sqreen-sdk');
+
+const Utils = require('../util');
 const ReportUtil = require('./reportUtil');
-const Util = require('../util');
 const InstruUtils = require('./utils');
-const Rules = require('../rules');
 const Metric = require('../metric');
 const DefaultMetrics = require('../metric/default');
-const Events = require('../events');
-const TYPE = require('../enums/events').TYPE;
-const SDK_TYPE = require('../enums/sdk').TYPE;
 const Feature = require('../command/features');
-const FORMAT_VERSION = '20171208';
 const Logger = require('../logger');
+const SignalUtils = require('../signals/utils');
 const Fuzzer = require('../fuzzer');
+const LegacyRecord = require('../../lib_old/instrumentation/record');
+
+const InstruState = require('../instrumentation/state');
 
 const WAF_RULE_NAME_START = 'waf_node'; // FIXME: remove when we do the proper thing in the WAF lib
 
+/**
+ *
+ * @type {WeakMap<http.IncomingMessage, RecordTrace>}
+ */
 const STORE = module.exports.STORE = new WeakMap();
-let INSTRU_ENABLED = false;
 
 const TODO = module.exports.TODO = {
     reportExpressTable: false,
@@ -40,210 +44,253 @@ module.exports.collectTable = function (cb) {
     TODO.reportExpressTableCB = cb;
 };
 
-const Record = class {
+/** @typedef {{ mustReport: boolean, reportPayload: boolean, wafAttack: Object, perfMon: boolean, timeStart?: [number] }} RecordMeta */
+/** @typedef {{ ip_addresses: string[], identifiers?: Object, traits?: Object }} RecordActor */
 
-    constructor(req, client_ip) { // TODO: remove req to avoid storing in closure?
+const RecordTrace = class extends SqreenSDK.Trace {
 
-        Logger.INFO('Create Request Record');
-        this.version = FORMAT_VERSION;
-        this.rulespack_id = Rules.rulespack;
-        this.client_ip = client_ip || Util.getXFFOrRemoteAddress(req);
-        this.request = {};
-        // this.response = {}; // TODO: future
-        this.observed = {
-            attacks: [],
-            sqreen_exceptions: [],
-            observations: [],
-            data_points: [],
-            // TODO: add agent_message here and spec it too
-            sdk: []
-        };
-        this.identity = null;
-        this.response = {};
+    /**
+     *
+     * @param {http.IncomingMessage} req
+     * @param client_ip {string}
+     * @param {boolean} perfMon
+     */
+    constructor(req, client_ip, perfMon) {
 
-        this.isClosed = false;
-        this.mustReport = false;
-
+        super();
         STORE.set(req, this);
-        this.user = null;
-        this.reportPayload = false;
+        Logger.INFO('Create Request Record');
+        /**
+         * @type RecordActor
+         */
+        this.actor = {
+            ip_addresses: [client_ip]
+        };
 
-        this.perfMon = Feature.perfmon();
-        if (this.perfMon === true) {
-            this.timeStart = process.hrtime();
-        }
         // $lab:coverage:off$
         this.isRevealReplayed = Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req);
         // $lab:coverage:on$
+
+        /**
+         * @type RecordMeta
+         * @private
+         */
+        this._meta = {
+            mustReport: false,
+            reportPayload: false,
+            wafAttack: null,
+            perfMon,
+            isRevealReplayed: this.isRevealReplayed
+        };
+
+        if (this._meta.perfMon  === true) {
+            this._meta.timeStart = process.hrtime();
+        }
         this.wafAttack = undefined;
     }
 
-    attack(atk, rpid) {
+    /**
+     *
+     * @param {http.IncomingMessage} req
+     * @param {http.ServerResponse} res
+     * @param {RecordMeta} meta
+     */
+    build(req, res, meta) {
 
-        this.reportPayload = true;
+        this.location_infra = { infra: SignalUtils.infra };
 
-        if (rpid) {
-            this.rulespack_id = rpid;
+        const response = { status: res.statusCode };
+        if (typeof res.getHeaders === 'function') {
+            const headers = res.getHeaders(); // only available starting Node 7.7.0 https://nodejs.org/dist/latest-v10.x/docs/api/http.html#http_response_getheaders
+            response.content_length = headers['content-length'] || headers['Content-Length'];
+            response.content_type = headers['content-type'] || headers['Content-Type'];
         }
-        if (atk.rule_name !== undefined && atk.rule_name.indexOf(WAF_RULE_NAME_START) === 0) {
-            this.mustReport = true;
-            this.wafAttack = atk; // there should be only 1 waf attack
+        const sanitized = [];
+        const request = ReportUtil.mapRequestAndArrayHeaders(req, meta.reportPayload, sanitized);
+        this.context = {
+            type: 'http',
+            request, response
+        };
+        this.actor.user_agent = this.context.request.user_agent;
+
+        if (meta.wafAttack !== null && sanitized.length > 0) {
+            // we must sanitize the WAF attack
+            meta.wafAttack.payload.infos.waf_data = JSON.stringify(ReportUtil.safeFromArray(JSON.parse(meta.wafAttack.payload.infos.waf_data), sanitized, 0));
+            meta.wafAttack = undefined; // attack is already in the points
+        }
+    }
+
+    /**
+     *
+     * @param {http.IncomingMessage} req
+     * @param {http.ServerResponse} res
+     * @param {number} sqreenSum
+     */
+    close(req, res, sqreenSum) {
+
+        const meta = this._meta;
+        this._meta = undefined;
+        this.isRevealReplayed = undefined;
+        if (InstruState.enabled === false) {
             return;
         }
-        this.observed.attacks.push(atk);
-    }
-
-    except(exc) {
-
-        this.reportPayload = true;
-        this.observed.sqreen_exceptions.push(exc);
-    }
-
-    observe(observationList, date) {
-
-        date = date || new Date();
-        for (let i = 0; i < observationList.length; ++i) {
-            this.observed.observations.push({
-                category: observationList[i][0],
-                key: observationList[i][1],
-                value: observationList[i][2],
-                time: date
-            });
-        }
-    }
-
-    identify(record, traits) {
-
-        this.identity = record;
-        this.user = record;
-        return this.addSDK(SDK_TYPE.IDENTIFY, [record, traits]);
-    }
-
-    pushDataPoints(dataPointList) {
-
-        for (let i = 0; i < dataPointList.length; ++i) {
-            this.observed.data_points.push(dataPointList[i]); // faster than concat
-        }
-    }
-
-    addSDK(name, args) {
-
-        let time;
-        if (name === SDK_TYPE.TRACK) {
-            this.mustReport = true;
-            time = args[1].timestamp;
-        }
-        else {
-            time = new Date();
-        }
-        this.observed.sdk.push({ time, name, args });
-    }
-
-    shouldReport() {
-
-        return this.observed.attacks.length > 0 || this.observed.sqreen_exceptions.length > 0 || this.observed.data_points.length > 0;
-    }
-
-    reportMetric() {
-
-        this.observed.observations.forEach((x) => {
-
-            Metric.addObservations([[x.category, x.key, x.value]], x.time);
-        });
-    }
-
-    report(req, res) {
-
-        if (INSTRU_ENABLED === false) {
-            Logger.INFO('Not reporting Request Record as agent is disabled.');
-            return;
-        }
-
-        if (this.mustReport || this.shouldReport()) {
-            Logger.INFO(`Reporting Request Record with ${this.observed.sdk.length} SDK events`);
-            const sanitized = [];
-            this.request = ReportUtil.mapRequestAndArrayHeaders(req, this.reportPayload, sanitized);
-            if (sanitized.length > 0 && this.wafAttack) {
-                this.wafAttack.infos.waf_data = JSON.stringify(ReportUtil.safeFromArray(JSON.parse(this.wafAttack.infos.waf_data), sanitized, 0));
-            }
-            if (this.wafAttack) {
-                this.observed.attacks.push(this.wafAttack);
-                this.wafAttack = undefined;
-            }
-            this.response = {
-                status: res.statusCode
-            };
-            if (typeof res.getHeaders === 'function') {
-                const headers = res.getHeaders(); // only available starting Node 7.7.0 https://nodejs.org/dist/latest-v10.x/docs/api/http.html#http_response_getheaders
-                this.response.content_length = headers['content-length'] || headers['Content-Length'];
-                this.response.content_type = headers['content-type'] || headers['Content-Type'];
-            }
-
-            Events.writeEvent(TYPE.REQUEST_RECORD, this);
-            return;
-        }
-        Logger.INFO('Not reporting Request Record');
-        return this.reportMetric();
-    }
-
-    close(req, sqreenSum, budget, res, monitBudget) {
 
         if (TODO.reportExpressTable === true) {
             InstruUtils.collectRoutingTableAndReportIt(req.app, TODO.reportExpressTableCB);
             resetTODO();
         }
 
-        if (this.perfMon === true && INSTRU_ENABLED === true) {
-            const requestTime = InstruUtils.mergeHrtime(process.hrtime(this.timeStart));
+        if (meta === undefined) { // the record is already closed
+            return;
+        }
+
+        if (meta.perfMon === true) {
+            const requestTime = InstruUtils.mergeHrtime(process.hrtime(meta.timeStart));
             Metric.addObservations([
                 [DefaultMetrics.NAME.REQ, requestTime],
                 [DefaultMetrics.NAME.SQ, sqreenSum],
                 [DefaultMetrics.NAME.PCT, 100.0 * sqreenSum / (requestTime - sqreenSum)]
             ], new Date());
-            this.timeStart = undefined; // won't be serialized
         }
 
+        if (meta.mustReport === false) {
+            return; // nothing to do (in the future, report metrics here)
+        }
         Logger.INFO('closing Request Record');
-        this.user = null;
-        this.perfMon = undefined; // won't be serialized
-
-        if (this.isClosed) {
-            return;
-        }
-
-        if (this.identity !== null) {
-            this.observed.sdk.forEach((item) => {
-
-                if (item.name !== SDK_TYPE.TRACK) {
-                    return;
-                }
-                item.args[1] = item.args[1] || {};
-                if (!item.args[1].user_identifiers) {
-                    item.args[1].user_identifiers = this.identity;
-                }
-            });
-        }
-
-        this.isClosed = true;
-        this.report(req, res);
+        this.build(req, res, meta);
         STORE.delete(req);
+        this.BATCH.add(this);
     }
+
+    identify(identifiers, traits) {
+
+        this.actor.identifiers = identifiers;
+        this.actor.traits = traits;
+    }
+
+    makeReport() {
+
+        this._meta.mustReport = true;
+        this._meta.reportPayload = true;
+    }
+
+    /**
+     *
+     * @param {string} ruleName
+     * @param {string} attackType
+     * @param {Boolean} test
+     * @param {Boolean} block
+     * @param {Boolean} beta
+     * @param {object} infos
+     * @param {Date} time
+     * @param {[STLine]} stack_trace
+     * @param {string} rpid
+     */
+    attack(ruleName, attackType, test, block, beta, infos, time, stack_trace, rpid) {
+
+        this.makeReport();
+        // TODO: update attack Type to map on OWASP
+        const payload = {
+            test, block, beta, infos
+        };
+        const point = this.addPoint(
+            `sq.agent.attack.${attackType}`,
+            `sqreen:rule:${rpid}:${ruleName}`,
+            payload,
+            time);
+        point.payload_schema = SignalUtils.PAYLOAD_SCHEMA.ATTACK;
+        point.location = { stack_trace };
+
+        if (ruleName.indexOf(WAF_RULE_NAME_START) === 0) {
+            this._meta.wafAttack = point;
+        }
+    }
+
+    except(klass, message, infos, ruleName, rulesPack, time, backtrace) {
+
+        this.makeReport();
+        let source;
+        const name = 'sq.agent.exception';
+        if (ruleName !== undefined) {
+            source = `sqreen:rule:${rulesPack}:${ruleName}`;
+        }
+        else {
+            source = SignalUtils.SIGNAL_AGENT_VERSION;
+        }
+        const point = this.addPoint(name, source, { infos, message, klass }, time);
+        point.location = { stack_trace: backtrace };
+        point.payload_schema = SignalUtils.PAYLOAD_SCHEMA.EXCEPTIONS;
+    }
+
+    dataPoint(kind, nameEnd, infos, date) {
+
+        // TODO: schema
+        this.makeReport();
+        this.addPoint(`${kind}:${nameEnd}`, `sqreen:agent:${kind}`, infos, date);
+    }
+
+    /**
+     *
+     * @param {string} name
+     * @param {Object} args
+     * @param {?string} kind
+     */
+    addSDK(name, args, kind) {
+
+        // For now, name always === SDK_TYPE.TRACK
+        if (kind === undefined) {
+            kind = 'sdk';
+        }
+
+        let time;
+        if (args[1] && args[1].timestamp) {
+            time = args[1].timestamp;
+            args[1].timestamp = undefined;
+        }
+        else {
+            time = new Date();
+        }
+        const point = this.addPoint(`sqreen.${kind}.${args[0]}`,`sqreen:sdk:${name}`,  args[1], time);
+        point.payload_schema = SignalUtils.PAYLOAD_SCHEMA.SDK_TRACK;
+        this._meta.mustReport = true;
+    }
+
+    observe(observationList, date) {
+
+        Metric.addObservations(observationList, date);
+    }
+
 };
 
-module.exports.Record = Record;
+module.exports.RecordTrace = RecordTrace;
+
+/**
+ *
+ * @param {http.IncomingMessage} req
+ * @param {?string} client_ip
+ * @return *
+ */
 module.exports.lazyGet = function (req, client_ip) {
 
-    if (req === undefined || !req) {
+    if (client_ip === undefined) {
+        client_ip = Utils.getXFFOrRemoteAddress(req);
+    }
+
+    if (!req) {
         return null;
     }
-    const current = STORE.get(req);
+    const current = STORE.get(req) || LegacyRecord.STORE.get(req);
     if (current === undefined) {
-        return new Record(req, client_ip);
+        if (Feature.featureHolder.use_signals === true) {
+            return new RecordTrace(req, client_ip, Feature.perfmon());
+        }
+        return new LegacyRecord.Record(req, client_ip);
     }
     return current;
 };
 
 module.exports.switchInstru = function (state) {
 
-    INSTRU_ENABLED = state;
+    InstruState.enabled = state;
+    LegacyRecord.switchInstru(state);
 };

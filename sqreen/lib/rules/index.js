@@ -10,9 +10,18 @@ const Hoek = require('../../vendor/hoek/lib/index');
 const Callbacks = require('./rules-callback');
 const Director = require('../instrumentation/sqreenDirector');
 const CallbackBuilder = require('./rules-callback/callbackBuilder');
-const Metric = require('../metric');
 const Cap = require('./exceptions');
+const Sampling = require('../signals/sampling');
 const Config = require('../config').getConfig();
+
+const getMetric = function () {
+
+    const Feature = require('../command/features');
+    if (Feature.featureHolder.use_signals === true) {
+        return require('../metric');
+    }
+    return require('../../lib_old/metric');
+};
 
 
 module.exports.rulespack = '';
@@ -168,6 +177,9 @@ const prepareRuleList = function (ruleList) {
         if (rule.purpose === 'monitoring') {
             rule.exception_cap = new Cap(rule);
         }
+        if (rule.sampling !== undefined) {
+            rule.sampler = new Sampling.Sampler(rule.sampling);
+        }
     });
 };
 
@@ -201,7 +213,15 @@ module.exports.enforceRuleList = function (ruleList, doNotVerifySignature) {
     }
 
     // do metric related operations:
-    ruleList.map((r) => r.metrics).reduce((a, b) => a.concat(b), []).forEach(Metric.getMetric);
+    const rulesPack = ruleList[0].rulesPack || '';
+    for (let i = 0; i < ruleList.length; ++i) {
+        const rule = ruleList[i];
+        const metrics = rule.metrics || [];
+        metrics.forEach((met) => {
+
+            getMetric().getMetric(met, {}, `sqreen:rule:${rulesPack}:${rule.name}`);
+        });
+    }
 
 
     for (let i = 0; i < keys.length; ++i) {
@@ -213,7 +233,7 @@ module.exports.enforceRuleList = function (ruleList, doNotVerifySignature) {
         }
     }
 
-    module.exports.rulespack = ruleList[0].rulesPack;
+    module.exports.rulespack = rulesPack;
 
     return true;
 };

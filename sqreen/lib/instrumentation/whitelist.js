@@ -10,12 +10,17 @@ module.exports.ipIsWhiteListed = function (ip_address) {
     if (!init) {
         return '';
     }
-    const res = WHITELIST_ROUTER.route(ip_address);
-    if (res === undefined) {
+    try {
+        const res = WHITELIST_ROUTER.route(ip_address);
+        if (res === undefined) {
+            return '';
+        }
+
+        return res;
+    }
+    catch (_) {
         return '';
     }
-
-    return res;
 };
 
 module.exports.whitelistTheseIPs = function (rangeList) {

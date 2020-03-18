@@ -8,22 +8,15 @@ const Util = require('./util');
 
 module.exports = class extends Metric {
 
-    add(key_, value, date) {
+    add(realKey, value, date) {
 
-        const key = Util.getKey(key_);
-        if (key === null) {
+        const strKey = Util.getKey(realKey);
+        if (strKey === '') {
             return;
         }
         this.process(date);
-        if (typeof key_ === 'string') {
-            this.currentValue[key] = this.currentValue[key] || [];
-            this.currentValue[key].push(value);
-        }
-        else {
-            this.currentObjectValue[key] = this.currentObjectValue[key] || [];
-            this.currentObjectValue[key].push(value);
-            this.currentObjectValueKeys.add(key);
-        }
-
+        this.currentKeys.set(strKey, realKey);
+        this.currentValue[strKey] = this.currentValue[strKey] || [];
+        this.currentValue[strKey].push(value);
     }
 };

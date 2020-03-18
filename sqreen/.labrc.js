@@ -8,7 +8,7 @@ module.exports = {
     rejections: true
 };
 
-if (Semver.satisfies(process.version, '>= 8.0.0') && Os.platform() !== 'win32') {
+if (Semver.satisfies(process.version, '> 8.0.0') && Os.platform() !== 'win32') {
     module.exports.coverage = true;
     module.exports.threshold = 100;
 }

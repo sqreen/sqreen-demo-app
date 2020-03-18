@@ -5,7 +5,6 @@
 'use strict';
 const UuidV4 = require('uuid/v4');
 const OnFinished = require('on-finished');
-const Record = require('../record');
 const FunctionPatcher = require('../functionPatcher');
 const Whitelist = require('../whitelist');
 const Utils = require('../../util');
@@ -58,13 +57,19 @@ module.exports.enable = function (module, identity) {
         req.__sqreen_url = undefined;
         // req.__sqreen_uuid = undefined;
         if (record) {
+            const legacy = record.isLegacyRecord;
             try {
                 session.run(() => {
 
                     session.set('req', req);
                     session.set('res', res);
                     holder.end.apply(res, [req]);
-                    record.close(req, budgetSum, budget, res, monitBudget);
+                    if (legacy === true) {
+                        record.close(req, budgetSum, budget, res, monitBudget);
+                    }
+                    else {
+                        record.close(req, res, budgetSum);
+                    }
                     if (process.sqreenAsyncListener !== undefined) {
                         process.sqreenAsyncListener.cleanup(req);
                     }
@@ -72,7 +77,12 @@ module.exports.enable = function (module, identity) {
             }
             catch (e) {
                 require('../../exception').report(e).catch(() => {});
-                Record.STORE.delete(req); // paranoia
+                if (legacy === true) {
+                    require('../../../lib_old/instrumentation/record').STORE.delete(req);
+                }
+                else {
+                    require('../record').STORE.delete(req); // paranoia
+                }
             }
         }
         finished.add(req);
@@ -123,6 +133,7 @@ module.exports.enable = function (module, identity) {
                 }
 
                 req.__sqreen_uuid = UuidV4();
+                const Record = require('../record');
                 let record = Record.lazyGet(req, ipAddress);
 
                 session.bindEmitter(req);

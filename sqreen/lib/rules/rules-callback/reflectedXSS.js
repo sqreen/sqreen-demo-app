@@ -56,14 +56,12 @@ const XSSCB = class {
                     if (this.block) {
                         args[0] = Escape(insertedStr);
                     }
-                    setImmediate(() => {
 
-                        require('../../instrumentation/patch')._actOnCbResult([{
-                            record: { found: this.matchers[i].pattern, payload: insertedStr },
-                            rule,
-                            session
-                        }], session);
-                    });
+                    require('../../instrumentation/patch')._actOnCbResult([{
+                        record: { found: this.matchers[i].pattern, payload: insertedStr },
+                        rule,
+                        session
+                    }], session);
                     return;
                 }
             }

@@ -3,7 +3,7 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
-const Metric = require('../../metric');
+const Feature = require('../../command/features');
 
 const LOGIN = require('../../enums/metrics').LOGIN;
 const Util = require('../../util');
@@ -30,14 +30,14 @@ module.exports.getCbs = function () {
                 // login fail
                 setImmediate(() => {
 
-                    Metric.addObservations([[LOGIN.FAIL, key, 1]], now);
+                    Feature.getMetrics().addObservations([[LOGIN.FAIL, key, 1]], now);
                 });
             }
             else {
                 // login success
                 setImmediate(() => {
 
-                    Metric.addObservations([[LOGIN.SUCCESS, key, 1]], now);
+                    Feature.getMetrics().addObservations([[LOGIN.SUCCESS, key, 1]], now);
                 });
             }
             done.apply(this, arguments);

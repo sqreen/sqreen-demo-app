@@ -20,6 +20,7 @@ const getBaAndTransformerName = module.exports.getBaAndTransformerName = functio
 };
 
 //$lab:coverage:off$
+// FIXME: must be covered with a mock available for situations where WAF is not present. Anyway, we support windows now!!
 let first = true;
 module.exports.getCbs = function (rule) {
 
@@ -27,9 +28,15 @@ module.exports.getCbs = function (rule) {
         LibSqreen = require('sq-native');
     }
     catch (e) {
-        if (first) {
+        if (first) { // nocover
             Logger.DEBUG('Sqreen could not load package `sq-native`. In-app WAF features will not be available.');
-            const Message = require('../../agent_message');
+            let Message;
+            if (require('../../command/features').featureHolder.use_signals === true) {
+                Message = require('../../agent_message');
+            }
+            else {
+                Message = require('../../../lib_old/agent_message');
+            }
             const Os = require('os');
             const infos = {
                 platform: Os.platform(),
@@ -78,8 +85,8 @@ module.exports.getCbs = function (rule) {
 
             const inCache = cache.has(ba); // cache, just in case
             let res;
-            if (inCache === true) {
-                res = cache.get(ba);
+            if (inCache === true) { // nocover
+                res = cache.get(ba); // nocover
             }
             else {
                 try {
@@ -91,7 +98,7 @@ module.exports.getCbs = function (rule) {
                 }
                 cache.set(ba, res);
             }
-            if (res !== null && res !== undefined) { // no else, we will not bind empty things
+            if (res !== null && res !== undefined) { // no else, we will not bind empty things // nocover
                 /**
                  * We need to:
                  * * apply the transformer
@@ -101,6 +108,7 @@ module.exports.getCbs = function (rule) {
                     const t = Builder.transformers[transformer];
                     if (t !== undefined) {
                         params[baKey] = t(res);
+                        res = params[baKey];
                     }
                 }
                 if (transformer === 'flat_keys') {
@@ -142,13 +150,13 @@ module.exports.getCbs = function (rule) {
                     Script.runInContext(context, { timeout: Math.ceil(timeout) }); // this only accepts integers in ms
                 }
                 catch (err) {
-                    if (!err){
-                        throw new Error('empty err');
+                    if (!err){ // nocover
+                        throw new Error('empty err'); // nocover
                     }
-                    if (err.message && err.message.indexOf('Script execution timed out') > -1) {
-                        return null;
+                    if (err.message && err.message.indexOf('Script execution timed out') > -1) { // nocover
+                        return null; // nocover
                     }
-                    throw err;
+                    throw err; // nocover
                 }
 
                 params = sandbox.result;
@@ -188,7 +196,7 @@ module.exports.clearAll = function () {
         return true;
     }
     catch (e) {
-        return false;
+        return false; // nocover
     }
 };
 //$lab:coverage:on$

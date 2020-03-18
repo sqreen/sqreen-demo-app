@@ -4,18 +4,16 @@
  */
 'use strict';
 const Exception = require('../exception');
-const EventActions = require('../events/action');
-const Event = require('../events');
 const Agent = require('../agent');
-const DefaultMetrics = require('../metric/default');
 const SqreenSDK = require('sqreen-sdk');
+const EventActions = require('../../lib_old/events/action');
+const Event = require('../events');
 
-let INSTRU_ON = false;
+const InstruState = require('../instrumentation/state');
 
 module.exports.switchInstrumentationState = function (state) {
 
-    require('../instrumentation/record').switchInstru(state);
-    INSTRU_ON = state;
+    InstruState.enabled = state;
 };
 
 const featureHolder = module.exports.featureHolder = {
@@ -39,7 +37,26 @@ const featureHolder = module.exports.featureHolder = {
     monitoring_perf_budget: 5, //ms
     monitoring_request_overtime_metric_period: 60, // s
     exception_cap_alpha: 0.00106049,
-    exception_cap_threshold_percentage: 10
+    exception_cap_threshold_percentage: 10,
+    use_signals: false
+};
+
+module.exports.getMetrics = function () {
+
+    //$lab:coverage:off$
+    if (featureHolder.use_signals === true) {
+        return require('../metric');
+    }
+    return require('../../lib_old/metric');
+    //$lab:coverage:on$
+};
+
+const getDefaultMetric = function () {
+
+    if (featureHolder.use_signals === true) {
+        return require('../metric/default');
+    }
+    return require('../../lib_old/metric/default');
 };
 
 const updatePerfMonitor = function () {
@@ -47,7 +64,7 @@ const updatePerfMonitor = function () {
     if (featureHolder.perf_level === 0) {
         return;
     }
-    DefaultMetrics.enablePerfMonitor(featureHolder.perf_base, featureHolder.perf_unit, featureHolder.performance_metrics_period);
+    getDefaultMetric().enablePerfMonitor(featureHolder.perf_base, featureHolder.perf_unit, featureHolder.performance_metrics_period);
 };
 
 const updatePerfMonitorPct = function () {
@@ -55,7 +72,7 @@ const updatePerfMonitorPct = function () {
     if (featureHolder.perf_level === 0) {
         return;
     }
-    DefaultMetrics.enablePerfMonitorPct(featureHolder.perf_pct_base, featureHolder.perf_pct_unit, featureHolder.performance_metrics_period);
+    getDefaultMetric().enablePerfMonitorPct(featureHolder.perf_pct_base, featureHolder.perf_pct_unit, featureHolder.performance_metrics_period);
 };
 
 const commands = {
@@ -90,12 +107,13 @@ const commands = {
     },
     call_counts_metrics_period: function (value) {
 
-        DefaultMetrics.enableCallCount(value);
+        getDefaultMetric().enableCallCount(value);
     },
     reveal_sampling_ratio: function (value) {}, // state holding
     rules_signature: function (value) {}, // state holding
     whitelisted_metric: function (value) {}, // state holding
     max_radix_size: function (value) {}, // state holding
+    use_signals: function (value) {}, // state holding
     exception_cap_alpha: function (value, previous) {
 
         if (value < 0 || value > 1) {
@@ -117,11 +135,11 @@ const commands = {
     perf_level: function (value) {
 
         if (value === 1) {
-            DefaultMetrics.enablePerfMonitor(featureHolder.perf_base, featureHolder.perf_unit);
-            DefaultMetrics.enablePerfMonitorPct(featureHolder.perf_pct_base, featureHolder.perf_pct_unit);
+            getDefaultMetric().enablePerfMonitor(featureHolder.perf_base, featureHolder.perf_unit, featureHolder.performance_metrics_period);
+            getDefaultMetric().enablePerfMonitorPct(featureHolder.perf_pct_base, featureHolder.perf_pct_unit, featureHolder.performance_metrics_period);
         }
         else {
-            DefaultMetrics.disablePerfMonitor();
+            getDefaultMetric().disablePerfMonitor();
         }
     },
     perf_base: updatePerfMonitor,
@@ -130,13 +148,13 @@ const commands = {
     perf_pct_unit: updatePerfMonitorPct,
     monitoring_request_overtime_metric_period(period) {
 
-        DefaultMetrics.enableMonitRequestOvertime(period);
+        getDefaultMetric().enableMonitRequestOvertime(period);
     },
     performance_metrics_period() {
 
         if (featureHolder.performance_metrics_period <= 0) {
             // disable perf metric all together
-            DefaultMetrics.disablePerfMonitor();
+            getDefaultMetric().disablePerfMonitor();
             return;
         }
 
@@ -145,7 +163,7 @@ const commands = {
     },
     health_metrics_level() {
 
-        const DefaultMetric = require('../metric/default');
+        const DefaultMetric = getDefaultMetric();
         const Health = require('../agent/health');
         if (featureHolder.health_metrics_level <= 0) {
             DefaultMetric.disableHealth();
@@ -159,8 +177,7 @@ const commands = {
     },
     request_overtime_metric_period() {
 
-        const DefaultMetric = require('../metric/default');
-        DefaultMetric.enableRequestOvertime(featureHolder.request_overtime_metric_period);
+        getDefaultMetric().enableRequestOvertime(featureHolder.request_overtime_metric_period);
     },
     monitoring_perf_budget(timeInMSeconds) {
 
@@ -172,6 +189,10 @@ const commands = {
 };
 
 const readParam = function (param) {
+
+    if (param.use_signals !== undefined) {
+        featureHolder.use_signals = param.use_signals;
+    }
 
     Object.keys(param).forEach((key) => {
 
@@ -203,8 +224,11 @@ module.exports.read = function () {
     return featureHolder;
 };
 
+/**
+ *
+ * @return {boolean}
+ */
 module.exports.perfmon = function () {
 
-    return INSTRU_ON && featureHolder.perf_level === 1 && featureHolder.performance_metrics_period > 0;
+    return InstruState.enabled === true && featureHolder.perf_level === 1 && featureHolder.performance_metrics_period > 0;
 };
-

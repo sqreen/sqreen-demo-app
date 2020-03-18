@@ -6,8 +6,14 @@
 const EVENT_TYPES = require('../enums/events').TYPE;
 const SqreenEvent = require('../events');
 const AsJSON = require('../rules/rules-callback/utils').asJson;
+const Utils = require('../util');
 
+const kAttack_type = module.exports.kAttack_type = Symbol('attack_type');
 const Attack = function (atk, err) {
+
+    //$lab:coverage:off$
+    this[kAttack_type] = atk.attack_type || '';
+    //$lab:coverage:on$
 
     this.rule_name = atk.rule_name;
     this.rulespack_id = atk.rulespack_id || '0';
@@ -29,7 +35,7 @@ const Attack = function (atk, err) {
     }
 
     this.context = {
-        backtrace: (err || (new Error(atk.rule_name))).stack.split('\n') // TODO: use 'prepareStackTrace' ?
+        backtrace: (err || Utils.getMiniStackTrace())
     };
 };
 

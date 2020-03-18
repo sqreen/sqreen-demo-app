@@ -8,7 +8,7 @@
  * It is responsible for enabling the Sqreen avent loop
  */
 'use strict';
-const SqreenSDK = require('sqreen-sdk');
+require('../signals/utils'); // starts the signals here
 
 const Logger = require('../logger');
 const BackEnd = require('../backend');
@@ -19,15 +19,23 @@ const Features = require('../command/features');
 const MetricReport = require('../metric/report');
 const INTERNAL_MESSAGES = require('../enums/agent').INTERNAL_MESSAGES;
 
+const getMessage = function () {
+
+    if (Features.featureHolder.use_signals === true) {
+        return require('../agent_message/index');
+    }
+    return require('../../lib_old/agent_message/index');
+};
+
 process.on(INTERNAL_MESSAGES.SQREEN_LOADED_TWICE, (data) => {
 
-    const Message = require('../agent_message/index');
+    const Message = getMessage();
     const text =  'Sqreen agent has been loaded twice in the application. The second instance will be ignored and SDK calls will be reported to first loaded agent.\n'
     + 'Sqreen can behave in unexpected manner.\n'
     + `Active Sqreen agent version ${data.existing} - disabled agent is version ${data.current}.`;
 
     const message = new Message(Message.KIND.agent_required_twice, text, {});
-    message.report().catch(() => {});
+    message.report();
 });
 
 let STARTED = false; // server status
@@ -96,7 +104,9 @@ const heartBeatWorker = module.exports._heartBeatWorker = function () {
 const startHeartBeatLoop = module.exports._startHeartBeatLoop = function (interval) {
 
     // Heartbeat can be forced using environment value
-    const config = require('../config/index').getConfig();
+    //$lab:coverage:off$
+    const config = require('../config/index').getConfig() || {};
+    //$lab:coverage:on$
     interval = config.heartbeat_delay * 1000 || interval;
 
     require('../command/features').featureHolder.heartbeat_delay = interval / 1000;
@@ -141,11 +151,6 @@ const heartBeatLoopStarter = module.exports.heartBeatLoopStarter = function (opt
     // MetricReport.startReport({ interval: options.firstInterval, lifetime: options.changeIntervalAfter }, { interval: options.secondInterval });
 };
 
-const reportSignalBatch = function (batch) {
-
-    return BackEnd.signal_batch(SESSION_ID, batch).catch(() => {});
-};
-
 let currentLogin = null;
 /**
  * Starts the agent with the provided config
@@ -188,7 +193,7 @@ module.exports.start = function (Config, requiredBefore) {
 
             if (Array.isArray(requiredBefore) && requiredBefore.length > 0) {
 
-                const Message = require('../agent_message/index');
+                const Message = getMessage();
                 const text =  `The following modules were required before Sqreen. Sqreen may not be able to protect the whole application.
 - ${requiredBefore.join('\n- ')}
 If you think this is an error, please report it to Sqreen team.`;
@@ -196,11 +201,6 @@ If you think this is an error, please report it to Sqreen team.`;
                 const message = new Message(Message.KIND.first_require, text, { libs: requiredBefore });
                 message.report().catch(() => {});
             }
-        })
-        .then(() => {
-
-            // init standalone SDK
-            SqreenSDK.initBatch(Features.featureHolder.batch_size, Features.featureHolder.max_staleness / 1000, reportSignalBatch);
         });
 
     return currentLogin;

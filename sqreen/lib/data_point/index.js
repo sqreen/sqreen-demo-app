@@ -6,11 +6,15 @@
 const Event = require('../events');
 const TYPES = require('../enums/events').TYPE;
 const Logger = require('../logger');
+const Feature = require('../command/features');
 
 const DataPoint = class {
 
     constructor(kind, k1, k2, infos, date) {
 
+        if (Feature.featureHolder.use_signals === true) {
+            this.kind = kind;
+        }
         this.signal_identifier = `${kind}:${k1}:${k2}`;
         this.time = date || new Date();
         this.infos = infos;

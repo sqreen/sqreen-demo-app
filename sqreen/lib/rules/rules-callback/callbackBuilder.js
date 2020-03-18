@@ -6,7 +6,6 @@
 const Runner = require('./../runner');
 const Hoek = require('../../../vendor/hoek/lib/index');
 const Exception = require('../../exception/index');
-const Features = require('../../command/features');
 const Logger = require('../../logger');
 const AsJson = require('./utils').asJson;
 const Util = require('./utils'); // TODO: explain this to CTO
@@ -173,7 +172,7 @@ const Run = class {
                 },
                 '#.features': () => {
 
-                    return Features.read();
+                    return require('../../command/features').read();
                 }
             };
             if (session.__sqreen_lookup && session.__sqreen_lookup.hapi) {
@@ -284,6 +283,7 @@ module.exports.getCbs = function (rule) {
 
     Hoek.assert(!!rule.callbacks, `no callbacks in rule ${rule}`);
 
+    // TODO: compile callback only once per codebase!
     const callbacks = rule.callbacks.nodejs || rule.callbacks;
     const methodNames = Object.keys(callbacks);
     const methods = {};

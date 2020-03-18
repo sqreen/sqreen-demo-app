@@ -7,6 +7,31 @@ const Logger = require('../logger');
 const EVENT = require('../enums/events');
 const EventQueue = require('../events');
 const Util = require('util');
+
+const toReport = module.exports.toReport = function (err) {
+
+    err.reported = true;
+    Logger.DEBUG(`Sqreen reports error ${err}`);
+
+    // TODO: make better when diverses features appears
+    return {
+        klass: Error.name,
+        message: err.message,
+        params: null,
+        time: null,
+        infos: {
+            client_ip: null,
+            args: err.args
+        },
+        request: null,
+        rule_name: err.ruleName || null,
+        rulespack_id: err.rulesPack || null,
+        context: {
+            backtrace: err.stack.split('\n')
+        }
+    };
+};
+
 /**
  * report an exception and return it in a rejected promise
  * @param err
@@ -29,27 +54,7 @@ module.exports.report = function (err) {
                 err = new Error(Util.inspect(err));
             }
 
-            err.reported = true;
-            Logger.DEBUG(`Sqreen reports error ${err}`);
-
-            // TODO: make better when diverses features appears
-            const payload = {
-                klass: Error.name,
-                message: err.message,
-                params: null,
-                time: null,
-                infos: {
-                    client_ip: null,
-                    args: err.args
-                },
-                request: null,
-                rule_name: err.ruleName || null,
-                rulespack_id: err.rulesPack || null,
-                context: {
-                    backtrace: err.stack.split('\n')
-                }
-            };
-
+            const payload = toReport(err);
             return EventQueue.writeEvent(EVENT.TYPE.ERROR, payload)
                 .then(() => reject(err));
         });

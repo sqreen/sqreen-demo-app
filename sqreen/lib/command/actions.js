@@ -212,7 +212,19 @@ const commands = {
 
         return new Promise((resolve, reject) => {
 
-            require('../instrumentation/record').collectTable((err, table) => {
+            let Record;
+            //$lab:coverage:off$
+            if (Features.featureHolder.use_signals === true) {
+                //$lab:coverage:om$
+                Record = require('../instrumentation/record');
+            }
+            else {
+                //$lab:coverage:off$
+                Record = require('../../lib_old/instrumentation/record');
+                //$lab:coverage:on$
+            }
+
+            Record.collectTable((err, table) => {
 
                 if (err) {
                     return reject(err);

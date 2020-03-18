@@ -44,13 +44,13 @@ const report = function (actionName, output, req, action_id) {
 
     const SDK = require('../sdk/index');
 
-    return SDK._track(`sq.action.${actionName}`, {
+    return SDK._track(actionName, {
         properties: {
             output,
             action_id
         }
 
-    }, req);
+    }, req, 'action');
 };
 
 const placeInSetFor = function (item, set, duration) {

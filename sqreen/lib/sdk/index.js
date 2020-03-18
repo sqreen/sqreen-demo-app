@@ -63,16 +63,8 @@ const extAuthTrack = module.exports.auth_track = function (request, success, rec
     if (hasReq) {
         // I have the current request
         const reqRecord = Record.lazyGet(req);
-        reqRecord.user = record;
-        // This request has been replayed by the agent, we can skip the log
-        //$lab:coverage:off$
-        /*if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
-            //$lab:coverage:on$
-            return;
-        }*/
+        reqRecord.identify(record);
     }
-    // else { TODO: context loss ... with agent message? }
-
 
     if (hasReq) {
         NS.run(() => {
@@ -119,7 +111,7 @@ module.exports.identify = function (req, record, traits) {
 const identify = module.exports.identify;
 
 const knownKeys = ['properties', 'user_identifiers', 'timestamp', 'request', 'stacktrace', 'collect_body'];
-const track = function (event, args, req, internal) {
+const track = function (event, args, req, internal, kind) {
 
     if (typeof event !== 'string') {
         throw new TypeError('event name must be a string');
@@ -148,9 +140,11 @@ const track = function (event, args, req, internal) {
         return false;
     }
 
-    if (RR.identity && args.user_identifiers && !Hoek.deepEqual(RR.identity, args.user_identifiers)) {
+    //$lab:coverage:off$
+    if (RR.isLegacyRecord !== true && RR.actor.identifiers && args.user_identifiers && !Hoek.deepEqual(RR.actor.identifiers, args.user_identifiers)) {
         Logger.WARN('Sqreen.identify Sqreen.track have been called with different user_identifiers values.');
     }
+    //$lab:coverage:on$
 
     const argsAdditionalKeys = Object.keys(args).filter((key) => knownKeys.indexOf(key) < 0);
     if (argsAdditionalKeys.length > 0) {
@@ -184,10 +178,10 @@ const track = function (event, args, req, internal) {
     Logger.INFO(`tracking event ${event}`);
 
     if (args.collect_body === true) {
-        RR.reportPayload = true;
+        RR.makeReport();
     }
 
-    RR.addSDK(SDK_TYPE.TRACK, [event, args]);
+    RR.addSDK(SDK_TYPE.TRACK, [event, args], kind);
     return true;
 };
 
@@ -209,7 +203,10 @@ const userIsBanned = function (req) {
         return false;
     }
     const Actions = require('../actions/index');
-    return Actions.userIsBanned(record.user, req);
+    if (record.isLegacyRecord === true) {
+        return Actions.userIsBanned(record.user, req);
+    }
+    return Actions.userIsBanned(record.actor.identifiers, req);
 };
 
 /**
@@ -244,9 +241,9 @@ module.exports.track = function (event, args) {
     return track(event, args, req, false);
 };
 
-module.exports._track = function (event, args, req) {
+module.exports._track = function (event, args, req, kind) {
 
-    return track(event, args, req, true);
+    return track(event, args, req, true, kind);
 };
 
 module.exports.userIsBanned = userIsBanned;

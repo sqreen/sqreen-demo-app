@@ -7,3 +7,5 @@ WORKDIR /usr/src/agent
 COPY . .
 
 RUN npm install
+RUN ulimit -c unlimited
+
