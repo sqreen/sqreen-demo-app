@@ -15,10 +15,10 @@ const Login = require('../backend/login');
 const Actions = require('../actions/index');
 const Fuzzer = require('../fuzzer');
 
-const callReveal = function (action) {
+const callReveal = function () {
 
     if (Fuzzer.hasFuzzer()) {
-        return Fuzzer[action]();
+        return Fuzzer[this].apply(null, arguments);
     }
     return Promise.reject(new Error('Reveal is only supported for Node.js >= 6.0.0'));
 };
@@ -238,15 +238,15 @@ const commands = {
     },
     reveal_reload: function () {
 
-        return callReveal('reload');
+        return callReveal.apply('reload');
     },
-    reveal_start: function () {
+    reveal_start: function (params, uuid) {
 
-        return callReveal('start');
+        return callReveal.apply('start', [params[0]]);
     },
     reveal_stop: function () {
 
-        return callReveal('stop');
+        return callReveal.apply('stop');
     }
 };
 module.exports = commands;

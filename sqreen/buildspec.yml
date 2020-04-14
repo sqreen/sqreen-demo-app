@@ -9,3 +9,4 @@ phases:
     commands:
       - docker build . --build-arg node_version=${NODE_VERSION} --build-arg base_image=${BASE_IMAGE} -t agent/test
       - docker run agent/test npm run test-ci
+

@@ -377,6 +377,7 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
     return tryThis(
         () => {
 
+            Logger.DEBUG(`Running callback ${rule.name}`);
             currentBudget.start();
             const result = method(args, value, rule, selfObject, session, timeout) || {};
             currentBudget.stop(rule.name, kind);

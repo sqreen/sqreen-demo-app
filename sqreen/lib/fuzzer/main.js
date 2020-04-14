@@ -8,18 +8,19 @@
 /**
  * @typedef {import('./reveal').Environment} Environment
  * @typedef {import('./reveal').Runtime} Runtime
+ * @typedef {import('./reveal').SessionID} SessionID
  * @typedef {import('./reveal').Run} Run
  * @typedef {import('./reveal').Options} Options
  */
 
 const Logger = require('../logger');
-
 const AsyncLock = require('async-lock');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
 const FakeRequest = require('./fakerequest');
 const RuntimeV1 = require('./runtime').RuntimeV1;
 const Fuzzer = require('./fuzzer');
+const Signals = require('./signals');
 const State = require('./state');
 const Signature = require('./signature');
 const METRICTYPE = require('./metrics').METRICTYPE;
@@ -29,9 +30,6 @@ const AGENT_VERSION = require('../../package.json').version;
 /** @type {Record<string, string>} */
 // @ts-ignore
 const DEPENDENCIES = require('../../package.json').dependencies;
-
-// reveal public interface version implemented by the agent
-const INTERFACE = 1;
 
 const ASYNC_LOCK = new AsyncLock();
 
@@ -113,7 +111,7 @@ module.exports.reload = function () {
 
     return REVEAL_LOCK(() =>
 
-        BackEnd.reveal_runtime(Agent.SESSION_ID(), { interface: INTERFACE })
+        BackEnd.reveal_runtime(Agent.SESSION_ID())
             .then((runtime) => {
 
                 if (!runtime.status || !runtime.version) {
@@ -153,16 +151,17 @@ const startFuzzerSafe = function (run) {
  * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
  * See `reveal-fuzzer` types for reference.
  *
+  * @param {SessionID} sessionid - A reveal session (unique) id.
  * @returns {Promise<string>} Return a run UUID (or undefined in case of failure).
  */
-module.exports.start = function () {
+module.exports.start = function (sessionid) {
 
     return REVEAL_LOCK(() => {
 
         if (!ready()) {
             return Promise.reject(new Error('Reveal is not ready.'));
         }
-        return BackEnd.reveal_requests(Agent.SESSION_ID())
+        return BackEnd.reveal_run(Agent.SESSION_ID(), { session_id: sessionid })
             .then((run) => {
 
                 if (!run.status) {
@@ -177,28 +176,9 @@ module.exports.start = function () {
     });
 };
 
-const recordMutatedRequest = (request) =>
+const recordStats = (stats, done) => {
 
-    BackEnd.reveal_post_requests(Agent.SESSION_ID(), request)
-        .then((response) => {
-
-            Logger.INFO('Mutated request successfully sent to reveal backend.');
-        })
-        .catch((err) => {
-
-            // $lab:coverage:off$
-            if (err && err.message) {
-                Logger.ERROR(`Reveal backend didn't received the mutated request with "${err.message}"`);
-            }
-            else {
-                Logger.ERROR('Reveal backend didn\'t received the mutated request.');
-            }
-            // $lab:coverage:on$
-        });
-
-const recordStats = (stats, done) =>
-
-    BackEnd.reveal_post_stats(Agent.SESSION_ID(), stats)
+    Signals.recordStats(stats)
         .then((response) => {
 
             if (!done) {
@@ -221,6 +201,7 @@ const recordStats = (stats, done) =>
                 // $lab:coverage:on$
             }
         });
+};
 
 /**
  * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
@@ -308,7 +289,7 @@ const startFuzzer = function (rawrun) {
 
         Logger.INFO('Reveal found a new interesting mutated request.');
 
-        recordMutatedRequest(newreq);
+        Signals.recordMutatedRequest(newreq);
     });
 
     fuzzer.once('all_requests_done', () => {
@@ -386,7 +367,11 @@ const startFuzzer = function (rawrun) {
         Logger.INFO('All requests have been replayed! Up to the server to process them now...');
     }).catch( (err) => {
 
-        STATE.stopped();
+        // $lab:coverage:off$
+        if (STATE.isRunning()) {
+            // $lab:coverage:on$
+            STATE.terminating();
+        }
         // $lab:coverage:off$
         if (err && err.message) {
             // $lab:coverage:on$

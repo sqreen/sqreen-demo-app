@@ -107,8 +107,8 @@ const RecordTrace = class extends SqreenSDK.Trace {
         }
         const sanitized = [];
         const request = ReportUtil.mapRequestAndArrayHeaders(req, meta.reportPayload, sanitized);
+        this.context_schema = 'http/2020-01-01T00:00:00.000Z';
         this.context = {
-            type: 'http',
             request, response
         };
         this.actor.user_agent = this.context.request.user_agent;
@@ -250,7 +250,7 @@ const RecordTrace = class extends SqreenSDK.Trace {
         else {
             time = new Date();
         }
-        const point = this.addPoint(`sqreen.${kind}.${args[0]}`,`sqreen:sdk:${name}`,  args[1], time);
+        const point = this.addPoint(`sq.${kind}.${args[0]}`,`sqreen:sdk:${name}`,  args[1], time);
         point.payload_schema = SignalUtils.PAYLOAD_SCHEMA.SDK_TRACK;
         this._meta.mustReport = true;
     }

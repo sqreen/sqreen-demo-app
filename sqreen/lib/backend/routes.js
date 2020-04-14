@@ -24,8 +24,7 @@ module.exports = {
     agent_message: Config.url + '/sqreen/' + V0 + '/agent_message',
     data_point: Config.url + '/sqreen/' + V0 + '/data_point',
     // Reveal
-    reveal_runtime: Config.url + '/sqreen/' + V0 + '/reveal/runtime',
-    reveal_requests: Config.url + '/sqreen/' + V0 + '/reveal/requests',
-    reveal_stats: Config.url + '/sqreen/' + V0 + '/reveal/stats',
+    reveal_runtime: Config.url + '/sqreen/' + V1 + '/reveal/runtime/1',
+    reveal_run: Config.url + '/sqreen/' + V1 + '/reveal/run',
     signal_batch: 'https://ingestion.sqreen.com/batches'
 };

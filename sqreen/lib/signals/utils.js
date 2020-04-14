@@ -4,7 +4,17 @@
  */
 'use strict';
 const SqreenSDK = require('sqreen-sdk');
-SqreenSDK.initBatch(100, 60, (b) => require('../backend').signal_batch(require('../agent').SESSION_ID(), b));
+
+const report = (b) => require('../backend').signal_batch(require('../agent').SESSION_ID(), b);
+//$lab:coverage:off$
+const singleReport = function () {
+
+    return report([this]);
+};
+//$lab:coverage:on$
+
+SqreenSDK.initBatch(100, 60, report);
+SqreenSDK.setReport(singleReport);
 
 const VERSION = require('../../version').version;
 const Os = require('os');

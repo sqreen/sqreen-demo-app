@@ -93,15 +93,6 @@ module.exports.enable = function () {
             }
         }
 
-        try {
-            Patcher.patchModule(loadedModule, identity, request);
-        }
-        catch (err) {
-            Logger.DEBUG(`could not patch module ${request}: ${err.message}`);
-            logErr(err);
-        }
-
-
         if (Hooks.hasOwnProperty(request)) {
             try {
                 Hooks[request](identity, loadedModule);
@@ -116,6 +107,14 @@ module.exports.enable = function () {
         }
         catch (e) {
             logErr(e, request);
+        }
+
+        try {
+            return Patcher.patchModule(loadedModule, identity, request);
+        }
+        catch (err) {
+            Logger.DEBUG(`could not patch module ${request}: ${err.message}`);
+            logErr(err);
         }
 
         return loadedModule;

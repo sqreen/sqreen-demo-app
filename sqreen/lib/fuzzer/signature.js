@@ -20,8 +20,9 @@ bwkvYXaqv2vta5Edk4T7ge36XJNCwaojWwewxC+LsV9Ir9RIgXMfMg==
 `;
 
 const SIGNTYPE = {
-    RSA: 1,
-    ECC: 2
+    RS256: 1,
+    ES256: 2,
+    HS256: 3
 };
 
 /**
@@ -52,7 +53,7 @@ const getNormalizedPayloadAndSignature = module.exports._getNormalizedPayload = 
  */
 module.exports.verifyRuntimeSignature = function (runtime) {
 
-    const runtimeData = getNormalizedPayloadAndSignature(runtime, SIGNTYPE.ECC);
+    const runtimeData = getNormalizedPayloadAndSignature(runtime, SIGNTYPE.ES256);
     const payload = runtimeData.payload;
 
     const signature = Buffer.from(runtimeData.signature, 'hex');

@@ -20,21 +20,25 @@ module.exports.enableCallCount = function (period) {
 
 module.exports.enableWhitelisted = function () {
 
+    //$lab:coverage:off$
     Metrics.getMetric({
         kind: KIND.SUM,
         name: PERF.WHITELISTED,
         period: 60
     });
+    //$lab:coverage:on$
 };
 
 module.exports.enableRequestOvertime = function (period) {
 
+    //$lab:coverage:off$
     Metrics.removeMetricByName(PERF.REQUEST_OVERTIME);
     Metrics.getMetric({
         kind: KIND.SUM,
         name: PERF.REQUEST_OVERTIME,
         period: period || 60
     });
+    //$lab:coverage:on$
 };
 
 const enableMonitRequestOvertime = module.exports.enableMonitRequestOvertime = function (period) {
@@ -49,15 +53,19 @@ const enableMonitRequestOvertime = module.exports.enableMonitRequestOvertime = f
 
 module.exports.disablePerfMonitor = function () {
 
+    //$lab:coverage:off$
     Metrics.removeMetricByName(PERF.PCT);
     Metrics.removeMetricByName(PERF.REQ);
     Metrics.removeMetricByName(PERF.SQ);
     Metrics.removeMetricsByPrefix(PERF.SQ_PREFIX);
+    //$lab:coverage:on$
 };
 
 module.exports.disableMonitPerfMonitor = function () {
 
+    //$lab:coverage:off$
     Metrics.removeMetricsByPrefix(PERF.SQ_MONIT_PREFIX);
+    //$lab:coverage:on$
 };
 
 module.exports.enablePerfMonitorPct = function (base, factor, period) {

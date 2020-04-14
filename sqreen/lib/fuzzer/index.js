@@ -21,6 +21,7 @@ if (canLoadReveal) {
     INTERFACE.METRICTYPE = require('./metrics').METRICTYPE;
     const main = require('./main');
     INTERFACE.registerServer = main.registerServer;
+    INTERFACE.ready = main.ready;
     INTERFACE.reload = main.reload;
     INTERFACE.start = main.start;
     INTERFACE.stop = main.stop;

@@ -83,7 +83,7 @@ const SamplingLine = module.exports.SamplingLine = class {
             this.isFinished = true;
             return false;
         }
-        if (this.random !== undefined && Math.random() < this.random) {
+        if (this.random !== undefined && Math.random() > this.random) {
             return false;
         }
         if (this.calls !== undefined) {

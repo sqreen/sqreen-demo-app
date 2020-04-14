@@ -282,19 +282,9 @@ module.exports.reveal_runtime = function (session_id, query) {
     return LoggedRp(getGetOptions(Routes.reveal_runtime, { 'x-session-key': session_id }, query), 'get reveal/runtime');
 };
 
-module.exports.reveal_requests = function (session_id, query) {
+module.exports.reveal_run = function (session_id, query) {
 
-    return LoggedRp(getGetOptions(Routes.reveal_requests, { 'x-session-key': session_id }, query), 'get reveal/requests');
-};
-
-module.exports.reveal_post_requests = function (session_id, payload) {
-
-    return LoggedRp(getPostOptions(Routes.reveal_requests, { 'x-session-key': session_id }, payload), 'post reveal/requests');
-};
-
-module.exports.reveal_post_stats = function (session_id, payload) {
-
-    return LoggedRp(getPostOptions(Routes.reveal_stats, { 'x-session-key': session_id }, payload), 'post reveal/stats');
+    return LoggedRp(getGetOptions(Routes.reveal_run, { 'x-session-key': session_id }, query), 'get reveal/run');
 };
 
 module.exports.signal_batch = function (session_id, payload) {

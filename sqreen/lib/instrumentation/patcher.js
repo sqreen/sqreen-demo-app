@@ -5,14 +5,13 @@
 'use strict';
 const Logger = require('../logger');
 const FunctionPatcher = require('./functionPatcher');
+const HardPatches = require('./hardPatches');
 
 let savedModules = module.exports._savedModules = module.exports.savedModules = {};
 module.exports._init = function () {
 
     savedModules = module.exports._savedModules = module.exports.savedModules = {};
 };
-
-
 
 const makePatchable = function (mod, identity) {
 
@@ -24,6 +23,15 @@ const makePatchable = function (mod, identity) {
     savedModules[key].push({ module: mod, identity, patched: [] });
 };
 
+const makeFctPatchable = function (mod, identity) {
+
+    const holder = { mod };
+    FunctionPatcher.patchFunction(holder, 'mod', identity, '');
+    const res = holder.mod;
+    makePatchable(res, identity);
+    return res;
+};
+
 module.exports.patchModule = function (mod, identity) {
 
     if (!mod) {
@@ -31,6 +39,10 @@ module.exports.patchModule = function (mod, identity) {
     }
 
     Logger.DEBUG(`patching module ${identity.name}@${identity.version}/${identity.relativePath}`);
+
+    if (typeof mod === 'function' && HardPatches[identity.name] !== undefined && HardPatches[identity.name].indexOf(identity.relativePath) > -1) {
+        return makeFctPatchable(mod, identity);
+    }
 
     if (typeof mod === 'function' || typeof mod === 'object') {
         makePatchable(mod, identity);
@@ -73,56 +85,24 @@ module.exports.placePatch = function (updatePayload) {
     }
 
     const methodName = updatePayload.methodName || '';
-    for (let i = 0; i < savedModules[saveKey].length; ++i) {
+    toNextSavedOne: for (let i = 0; i < savedModules[saveKey].length; ++i) {
         const currentSavedModule = savedModules[saveKey][i];
 
         if (currentSavedModule.patched.indexOf(methodName) > -1) { // method already patched
             continue;
         }
-
-        // format: [key].['prototype']:[method]
-        const hasPrototype = methodName.indexOf('.prototype') > -1;
-        let key;
-        let end;
-        if (hasPrototype) {
-            const splitted = methodName.split(':');
-            end = splitted.pop();
-            key = splitted.shift().replace('.prototype', '');
-        }
-        else {
-            if (methodName.indexOf(':') > -1) {
-                const splitted = methodName.split(':');
-                end = splitted[1];
-                key = splitted[0];
+        const path = methodName.split(/\.|\:/);
+        const end = path.pop();
+        let holder = currentSavedModule.module;
+        for (let j = 0; j < path.length; ++j) {
+            const k = path[j];
+            if (!holder[k]) {
+                continue toNextSavedOne;
             }
-            else {
-                key = methodName;
-            }
+            holder = holder[k];
         }
-
         const identity = currentSavedModule.identity;
-
-        if (currentSavedModule.module[key]) {
-
-            const curr = currentSavedModule.module[key];
-            if (hasPrototype) {
-                if (!curr.prototype || !curr.prototype[end]) {
-                    continue;
-                }
-                currentSavedModule.patched.push(methodName);
-                FunctionPatcher.patchFunction(curr.prototype, end, identity, key + '.prototype');
-                continue;
-            }
-            else if (end) {
-                if (!curr[end]) {
-                    continue;
-                }
-                currentSavedModule.patched.push(methodName);
-                FunctionPatcher.patchFunction(curr, end, identity, key);
-                continue;
-            }
-            currentSavedModule.patched.push(methodName);
-            FunctionPatcher.patchFunction(currentSavedModule.module, key, identity, '');
-        }
+        FunctionPatcher.patchFunction(holder, end, identity, path.join('.'));
+        currentSavedModule.patched.push(methodName);
     }
 };

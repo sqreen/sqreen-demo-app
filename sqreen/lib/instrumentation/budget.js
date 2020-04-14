@@ -31,17 +31,7 @@ const OVERTIME_METRIC = {
     [PURPOSES.MONITORING]: CONST.PERF.MONIT_REQUEST_OVERTIME
 };
 
-let _Metrics = null;
-const getMetrics = function () {
-
-    if (_Metrics !== null) {
-        return _Metrics;
-    }
-    _Metrics = require('../metric/index.js');
-    return _Metrics;
-};
-
-
+const getMetrics = require('../command/features').getMetrics;
 
 const Budget = class {
 

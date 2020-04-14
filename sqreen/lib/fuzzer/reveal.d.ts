@@ -4,6 +4,11 @@
  */
 
 /**
+ * A string representing date using ISO 8601 data format (ex: '2020-03-23T21:33:14.501Z')
+ */
+export type ISO8601Date = string;
+
+/**
  * Various data related to the runtime version.
  */
 export interface RuntimeVersion {
@@ -19,10 +24,15 @@ export interface RuntimeVersion {
 
 /**
  * Signature types supported.
+ *
+ * RSASSA-PKCS1-v1_5 + SHA256 (RS256)
+ * ECDSA + SECP256k1 + SHA256 (ES256)
+ * HMAC + SHA256 + PBKDF2 (HS256)
  */
 export const enum RuntimeSignType {
-    RSA = 1,
-    ECC = 2
+    RS256 = 1,
+    ES256 = 2,
+    HS256 = 3
 }
 
 /**
@@ -33,18 +43,24 @@ interface RuntimeSignInterface {
     value: string;              // Runtime signature (in hexadecimal)
 }
 
-export interface RuntimeSignRSA extends RuntimeSignInterface {
-    type: RuntimeSignType.RSA;
+export interface RuntimeSignRS256 extends RuntimeSignInterface {
+    type: RuntimeSignType.RS256;
 }
 
-export interface RuntimeSignECC extends RuntimeSignInterface {
-    type: RuntimeSignType.ECC;
+export interface RuntimeSignES256 extends RuntimeSignInterface {
+    type: RuntimeSignType.ES256;
+}
+
+export interface RuntimeSignHS256 extends RuntimeSignInterface {
+    type: RuntimeSignType.HS256;
+    salt: string;
+    iterations: number;
 }
 
 /**
  * Runtime signature data type.
  */
-export type RuntimeSign = RuntimeSignRSA | RuntimeSignECC;
+export type RuntimeSign = RuntimeSignRS256 | RuntimeSignES256 | RuntimeSignHS256;
 
 /**
  * Runtime code (and associated metadata).
@@ -56,7 +72,7 @@ export interface Runtime {
         min: number;
         max: number;
     };
-    timestamp?: Date;           // Date keeping track of runtime release time.
+    timestamp?: ISO8601Date;    // Date keeping track of runtime release time.
     flags?: string[];           // Optional flags (reserved).
     signatures: RuntimeSign[];  // Runtime signatures.
 }
@@ -64,7 +80,7 @@ export interface Runtime {
 /**
  * Agent identifier.
  */
-export type AgentID = 'none' | 'go' | 'java' | 'nodejs' | 'php' | 'python' | 'ruby';
+export type AgentID = 'go' | 'java' | 'nodejs' | 'php' | 'python' | 'ruby' | 'standalone';
 
 /**
  * Application / agent related data
@@ -157,17 +173,23 @@ export interface Options {
 }
 
 /**
- * A Run (input data for a fuzzing session).
+ * A session (unique) identifier.
  */
-export interface Run {
-    options: Partial<Options>;  // Fuzzer options
-    corpus: Corpus;             // Input requests
-}
+export type SessionID = string;
 
 /**
  * A run (unique) identifier.
  */
 export type RunID = string;
+
+/**
+ * A Run (input data for a fuzzing session).
+ */
+export interface Run {
+    sessionid?: SessionID;      // Current session (unique) identifier (if any)
+    options: Partial<Options>;  // Fuzzer options
+    corpus: Corpus;             // Input requests
+}
 
 /**
  * Fuzzer statistics for the current session.
@@ -178,9 +200,11 @@ export type Stats = Record<string, any>;
  * Fuzzer statistics (and associated metadata) for the current session.
  */
 export interface RunStats {
-    runid: RunID;       // Current run (unique) identifier
-    date: Date;         // Date associated with current statistics
-    stats: Stats;       // Fuzzer statistics for the current session
+    sessionid: SessionID;   // Current session (unique) identifier
+    runid: RunID;           // Current run (unique) identifier
+    date: ISO8601Date;      // Date associated with current statistics
+    done: boolean;          // Are current run stats intermediate or final ones?
+    stats: Stats;           // Fuzzer statistics for the current session
 }
 
 /**
@@ -199,13 +223,21 @@ export const enum MetricType {
 }
 
 /**
+ * An endpoint key identifying a specific endpoint (pathname, method, ...).
+ */
+export interface EndpointKey {
+    pathname: string;  // The pathname of an endpoint path (including route templates)
+    method?: Method;   // Endpoint method (only supported ones, GET is default)
+}
+
+/**
  * A metric (key, value) with associated (optional) metadata (endpoint, type).
  */
 export interface MetricRecord {
-    endpoint?: string;  // Some metrics are associated to an endpoint
-    key: MetricKey;     // Metric key in form of a path (ex: 'fuzzer.start')
-    value: any;         // Metric value (may depend of the type)
-    type?: MetricType;  // Metric type (ex: Sum, Average, ...)
+    endpoint?: EndpointKey; // Some metrics are associated to an endpoint
+    key: MetricKey;         // Metric key in form of a path (ex: 'fuzzer.start')
+    value: any;             // Metric value (may depend of the type)
+    type?: MetricType;      // Metric type (ex: Sum, Average, ...)
 }
 
 /**
@@ -299,6 +331,15 @@ export interface RevealInterfaceV1 {
      * @returns {FuzzID | null} A fuzzer reference (or null in case of failure).
      */
     initFuzzer(env: Environment, run: Run): FuzzID | null;
+
+    /**
+     * Retrieve the current session identifier.
+     *
+     * @param {FuzzID} id - A fuzzer reference.
+     *
+     * @returns {SessionID} Current session (unique) identifier.
+     */
+    getSessionID(id: FuzzID): SessionID;
 
     /**
      * Retrieve the current run identifier.

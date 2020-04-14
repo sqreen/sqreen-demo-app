@@ -2,6 +2,84 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.40.0]
+### Added
+
+* add support for md5 patching
+* update Reveal version
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* In-App WAF can handle encoded URI properly
+
+### Security
+
+N/A
+
+## [1.39.0]
+### Added
+
+* Security signals support
+* New reveal interface
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* In-App WAF can handle encoded URI properly
+
+### Security
+
+N/A
+
+## [1.38.4]
+### Added
+
+* Security signals support
+* New reveal interface
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* In-App WAF can handle encoded URI properly
+
+### Security
+
+N/A
+
 ## [1.38.4]
 ### Added
 

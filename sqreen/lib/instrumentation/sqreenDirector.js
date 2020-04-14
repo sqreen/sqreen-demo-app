@@ -88,6 +88,14 @@ module.exports.register = function (registerPayload) {
     }
 };
 
+const getAltMethodName = function (name) {
+
+    const split = name.split(/\.|\:/);
+    const end = split.pop();
+    const base = split.join('.');
+    return `${base}:${end}`;
+};
+
 const Patcher = require('./patcher');
 /**
  * Call the update payload of a method. this changes the pre/post/fail callbacks
@@ -100,6 +108,8 @@ const update = module.exports.update = function (updatePayload) {
     Patcher.placePatch(updatePayload);
 
     const methodName = updatePayload.methodName || '';
+    // cover the case of nested methods because the holder is the path
+    const altMethodName = getAltMethodName(methodName);
     const file = updatePayload.file || '';
     updatePayload.versions = updatePayload.versions || '';
 
@@ -134,8 +144,10 @@ const update = module.exports.update = function (updatePayload) {
             continue;
         }
 
-        const callbackList = instrumented[updatePayload.moduleName][versions[i]][file][methodName];
-
+        let callbackList = instrumented[updatePayload.moduleName][versions[i]][file][methodName];
+        if (!callbackList) {
+            callbackList = instrumented[updatePayload.moduleName][versions[i]][file][altMethodName];
+        }
         if (!callbackList) {
             addToWaiting(updatePayload);
             continue;

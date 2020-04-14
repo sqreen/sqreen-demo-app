@@ -24,6 +24,7 @@ RUNNING_TARGETS.putAt("nightly_v14-v8-canary", { tryTest("v14-v8-canary", "vdetu
 RUNNING_TARGETS.putAt("v10-rc", { tryTest("v10-rc", "vdeturckheim/node_nightly") })
 RUNNING_TARGETS.putAt("v12-rc", { tryTest("v12-rc", "vdeturckheim/node_nightly") })
 RUNNING_TARGETS.putAt("v13-rc", { tryTest("v13-rc", "vdeturckheim/node_nightly") })
+RUNNING_TARGETS.putAt("v14-rc", { tryTest("v14-rc", "vdeturckheim/node_nightly") })
 
 RUNNING_TARGETS.putAt("nightly_v14-v8-canary", { tryTest("v14-v8-canary", "vdeturckheim/node_nightly") })
 

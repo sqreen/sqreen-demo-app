@@ -24,6 +24,7 @@ const supportGetHeaders = Semver.satisfies(process.version, '>= 7.7.0');
  * @typedef {import('./reveal').Options} Options
  * @typedef {import('./reveal').InputRequest} InputRequest
  * @typedef {import('./reveal').Request} Request
+ * @typedef {import('./reveal').EndpointKey} EndpointKey
  * @typedef {import('./reveal').MetricKey} MetricKey
  * @typedef {import('./reveal').MetricType} MetricType
  * @typedef {import('./reveal').MetricRecord} MetricRecord
@@ -46,7 +47,7 @@ const supportGetHeaders = Semver.satisfies(process.version, '>= 7.7.0');
  * }} FuzzerSignal
  */
 
-const Fuzzer = module.exports = class extends Events {
+const Fuzzer = module.exports = class extends Events.EventEmitter {
     /**
      * @param {Runtime} runtime - A Runtime instance.
      * @param {Environment} env - Agent environment.
@@ -103,6 +104,16 @@ const Fuzzer = module.exports = class extends Events {
     get options() {
 
         return this._runtime.getOptions(this._id);
+    }
+
+    /**
+     * Get current session ID.
+     *
+     * @returns {string | null} SessionID if successful, null if not.
+     */
+    get sessionid() {
+
+        return this._runtime.getSessionID(this._id);
     }
     //$lab:coverage:on$
 
@@ -256,7 +267,7 @@ const Fuzzer = module.exports = class extends Events {
             batchlen = batchlen >= 2 ? batchlen : 2;
 
             // $lab:coverage:on$
-            FuzzUtils.asyncWhile((_i, next) => {
+            FuzzUtils.asyncWhile((iter, next) => {
 
                 let result;
                 try {
@@ -272,6 +283,10 @@ const Fuzzer = module.exports = class extends Events {
                 }
                 const mutatedReqsCnt = mutatedReqs.length;
                 if (mutatedReqsCnt <= 0) {
+                    // Nothing to do on first iteration => empty corpus...
+                    if (iter < 1) {
+                        setTimeout(() => this._onDone(), 1000);
+                    }
                     return done();
                 }
                 let failures = 0;
@@ -325,7 +340,7 @@ const Fuzzer = module.exports = class extends Events {
     /**
      * Update / add a fuzzer endpoint metric
      *
-     * @param {string} endpoint - A path identifying an endpoint.
+     * @param {EndpointKey} endpoint - A path identifying an endpoint.
      * @param {MetricKey} key - A metric key (ex: 'requests.fuzzed').
      * @param {any} value - Update metric using this value.
      * @param {MetricType?} [type] - A metric type (optional on existing metrics).

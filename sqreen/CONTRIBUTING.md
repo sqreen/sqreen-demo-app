@@ -52,6 +52,7 @@ If you are proposing a feature:
 $ git clone https://github.com/sqreen/AgentNode.git
 $ cd AgentNode
 $ npm install
+$ npm run install-tests
 ```
 
 > This should work with npm 2 and npm 3+
@@ -71,3 +72,7 @@ $ npm test
 
 Please follow the style guide from the [hapi community](http://hapijs.com/styleguide) enforced by the test runner.
 
+### Branching
+
+The `master` branch is protected and always has the same codebase as the latest version published on npm.
+The `dev` branch is protected. All PR should be created against it except for hotfixes and release.

@@ -59,6 +59,20 @@ const getDefaultMetric = function () {
     return require('../../lib_old/metric/default');
 };
 
+const enableAllDefaultMetrics = module.exports.enableAllDefaultMetrics = function () {
+
+    [require('../metric/default'), require('../../lib_old/metric/default')]
+        .forEach((met) => {
+
+            met.enablePerfMonitor(featureHolder.perf_base, featureHolder.perf_unit, featureHolder.performance_metrics_period);
+            met.enablePerfMonitorPct(featureHolder.perf_pct_base, featureHolder.perf_pct_unit, featureHolder.performance_metrics_period);
+            met.enableCallCount(featureHolder.call_counts_metrics_period);
+            met.enableRequestOvertime(featureHolder.request_overtime_metric_period);
+            met.enableMonitRequestOvertime(featureHolder.monitoring_request_overtime_metric_period);
+        });
+};
+enableAllDefaultMetrics();
+
 const updatePerfMonitor = function () {
 
     if (featureHolder.perf_level === 0) {

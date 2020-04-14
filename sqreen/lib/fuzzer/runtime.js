@@ -10,6 +10,7 @@
  * @typedef {import('./reveal').Environment} Environment
  * @typedef {import('./reveal').FuzzID} FuzzID
  * @typedef {import('./reveal').ReqID} ReqID
+ * @typedef {import('./reveal').SessionID} SessionID
  * @typedef {import('./reveal').RunID} RunID
  * @typedef {import('./reveal').Options} Options
  * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
@@ -74,6 +75,7 @@ module.exports.RuntimeV1 = class extends Runtime {
         this._api_validateEnv = this._importAPI('validateEnv');
         this._api_validateRun = this._importAPI('validateRun');
         this._api_initFuzzer = this._importAPI('initFuzzer');
+        this._api_getSessionID = this._importAPI('getSessionID');
         this._api_getRunID = this._importAPI('getRunID');
         this._api_getRunStats = this._importAPI('getRunStats');
         this._api_getOptions = this._importAPI('getOptions');
@@ -146,6 +148,20 @@ module.exports.RuntimeV1 = class extends Runtime {
 
         return this._runInContext(this._api_initFuzzer)(env, run);
     }
+    // $lab:coverage:off$
+
+    /**
+     * Retrieve the current session identifier.
+     *
+     * @param {FuzzID} id - A fuzzer reference.
+     *
+     * @returns {SessionID} Current session identifier.
+     */
+    getSessionID(id) {
+
+        return this._runInContext(this._api_getSessionID)(id);
+    }
+    // $lab:coverage:on$
 
     /**
      * Retrieve the current run identifier.

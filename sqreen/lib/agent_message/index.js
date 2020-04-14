@@ -42,7 +42,7 @@ const AgentMessage = class extends SqreenSDK.Point {
         }
         knownMessages.add(this.payload.hash);
         this.BATCH.add(this);
-        return Promise.resolve;
+        return Promise.resolve();
     }
 
     static initKnownMessages(messageList) {
