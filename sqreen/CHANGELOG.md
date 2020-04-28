@@ -2,6 +2,58 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.41.0]
+### Added
+
+N/A
+
+### Changed
+
+* update to sq-native 0.9.1 to remove node-pre-gyp
+* no budget for reveal rules
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+N/A
+
+### Security
+
+N/A
+
+## [1.40.1]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* Make metric access from budget safer
+* Bind signup_track to express properly
+
+### Security
+
+N/A
+
 ## [1.40.0]
 ### Added
 

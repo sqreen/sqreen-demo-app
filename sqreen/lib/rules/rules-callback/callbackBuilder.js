@@ -306,14 +306,26 @@ module.exports.getCbs = function (rule) {
     result.fail = methods.fail;
     result.async_post = methods.async_post;
 
-    if (rule.data !== undefined && rule.data.values !== undefined && rule.data.values[0] !== undefined && rule.data.values[0].no_budget === true) {
-        Object.keys(result)
-            .map((x) => result[x])
-            .filter(Boolean)
-            .forEach((method) => {
+    if (rule.data !== undefined && rule.data.values !== undefined && rule.data.values[0] !== undefined) {
+        // Rule is not taken into account in budget
+        if (rule.data.values[0].no_budget === true) {
+            Object.keys(result)
+                .map((x) => result[x])
+                .filter(Boolean)
+                .forEach((method) => {
 
-                method.noBudget = true;
-            });
+                    method.noBudget = true;
+                });
+        }
+        if (rule.data.values[0].reveal_run_on !== undefined) {
+            Object.keys(result)
+                .map((x) => result[x])
+                .filter(Boolean)
+                .forEach((method) => {
+
+                    method.revealRunOn = rule.data.values[0].reveal_run_on;
+                });
+        }
     }
 
     return result;

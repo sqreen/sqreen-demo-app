@@ -359,6 +359,22 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
         return {};
     }
 
+    if (rule.purpose === 'reveal') {
+        const isFuzzed = session !== undefined && session !== null && Fuzzer.hasFuzzer() === true && Fuzzer.isRequestReplayed(session.req) === true;
+        if (!isFuzzed) {
+            // skip reveal rules on original requests (default behaviour)
+            if (method.revealRunOn !== 'both' && method.revealRunOn !== 'original') {
+                return {};
+            }
+        }
+        else {
+            // skip reveal rules targeting original requests on fuzzed requests
+            if (method.revealRunOn === 'original') {
+                return {};
+            }
+        }
+    }
+
     if (!PreConditions.fillsPreConditions(rule, kind, args, value, selfObject, session)) {
         return {};
     }
@@ -460,8 +476,6 @@ const runUniqueCb = function (method, args, value, rule, selfObject, session, ki
 
 const runCbs = function (list, args, value, selfObject, kind, session, budget, monitBudget) {
 
-    let actualBudget = budget;
-    let actualMoniBudget = monitBudget;
     if (session && session.req && session.req._sqreen_ip_whitelist) {
         return [];
     }
@@ -478,25 +492,9 @@ const runCbs = function (list, args, value, selfObject, kind, session, budget, m
             result[i] = {};
             continue;
         }
-        const isReveal = list[i].rule && list[i].rule.purpose === 'reveal'; // TODO: have a global reveal state to quick path the reveal checks
-        // skip reveal callbacks for reveal requests
-        //$lab:coverage:off$
-        if (session !== undefined && session !== null && Fuzzer.hasFuzzer() === true && Fuzzer.isRequestReplayed(session.req) === true && isReveal === true) {
-            //$lab:coverage:on$
-            result[i] = {};
-            continue;
-        }
-        if (isReveal === true) { // for reveal actions, let's have an infinite budget
-            actualBudget = Budget.INFINITY;
-            actualMoniBudget = Budget.INFINITY;
-        }
         process.__sqreen_cb = true; // place a lock: two callbacks cannot run at the same time
-        result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, actualBudget, actualMoniBudget);
+        result[i] = runUniqueCb(list[i].method, args, value, list[i].rule, selfObject, session, kind, budget, monitBudget);
         process.__sqreen_cb = false; // remove lock
-        // TODO: remove this once legacy reveal_collect_req rule is removed
-        if (isReveal === true && Array.isArray(result[i].data_points) && result[i].data_points.length > 0 && result[i].data_points[0].params === undefined) {
-            result[i].payload = true;
-        }
     }
 
     // setImmediate(() => {

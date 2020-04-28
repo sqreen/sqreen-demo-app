@@ -89,6 +89,17 @@ module.exports.signup_track = function (record) {
     signup_track(record);
 };
 
+const extSignupTrack = function (req, record) {
+
+    const NS = require('../instrumentation/hooks/ns').getNS();
+    NS.run(() => {
+
+        NS.set('req', req);
+        NS.set('res', req.__sqreen_res);
+        signup_track(record);
+    });
+};
+
 /**
  * map a user to an HTTP request in Sqreen
  * @param req
@@ -222,7 +233,7 @@ module.exports.middleware = function (req, res, next) {
         track: middleWareTrack.bind(req),
         identify: middleWareIdentify.bind(req),
         userIsBanned: userIsBanned.bind(null, req),
-        signup_track,
+        signup_track: extSignupTrack.bind(null, req),
         auth_track: extAuthTrack.bind(null, req)
     };
     return next();

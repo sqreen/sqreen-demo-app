@@ -32,6 +32,34 @@ const OVERTIME_METRIC = {
 };
 
 const getMetrics = require('../command/features').getMetrics;
+const safeMetricMethod = function (method) {
+
+    const metric = getMetrics();
+    //$lab:coverage:off$
+    if (!metric || typeof metric[method] !== 'function') {
+        //$lab:coverage:on$
+        return null;
+    }
+    return metric[method];
+};
+const addBinningObservation = function (arg1, arg2, arg3) {
+
+    const method = safeMetricMethod('addBinningObservation');
+    //$lab:coverage:off$
+    if (method !== null) {
+        //$lab:coverage:on$
+        return method(arg1, arg2, arg3);
+    }
+};
+const addOneObservation = function (arg1, arg2, arg3) {
+
+    const method = safeMetricMethod('addOneObservation');
+    //$lab:coverage:off$
+    if (method !== null) {
+        //$lab:coverage:on$
+        return method(arg1, arg2, arg3);
+    }
+};
 
 const Budget = class {
 
@@ -80,12 +108,12 @@ const Budget = class {
         this.stateCtr += spent;
 
         if (this.perfMon === true) {
-            getMetrics().addBinningObservation(`${this.PREFIX}${ruleName}.${cb}`, spent);
+            addBinningObservation(`${this.PREFIX}${ruleName}.${cb}`, spent);
         }
 
         if (this._isInfinity === false && this.max > 0) { // if has budget
             if (this.remain - this.stateCtr <= 0) { // last cb has made us go over budget or is a nobudget and we were over budget
-                getMetrics().addOneObservation([this.OVERTIME_METRIC, ruleName, 1]);
+                addOneObservation([this.OVERTIME_METRIC, ruleName, 1]);
             }
         }
 
@@ -119,7 +147,7 @@ const Budget = class {
         if (this.perfMon === true || this._isInfinity !== true) {
             const monitSpent = monitBudget.sum - this.offset0;
             const spent = Util.mergeHrtime(process.hrtime(this.currentCount)) - monitSpent;
-            getMetrics().addBinningObservation(`sq.hooks.${this.state}`, spent - this.stateCtr);
+            addBinningObservation(`sq.hooks.${this.state}`, spent - this.stateCtr);
             this.remain -= spent;
             this.sum += spent;
         }
@@ -169,3 +197,6 @@ Budget.INFINITY = new Budget(Infinity);
 Budget.ZERO = new Budget(0);
 
 module.exports = Budget;
+module.exports._safeMetricMethod = safeMetricMethod;
+module.exports._addBinningObservation = addBinningObservation;
+module.exports._addOneObservation = addOneObservation;
