@@ -4,7 +4,7 @@
  */
 'use strict';
 
-/** @typedef  {{target_per_minute?: number, max_collect?: number, random?: number, max_duration_minutes?: number, max_collect?: number, calls?: number}} SamplerInstructionLine**/
+/** @typedef  {{target_per_minute?: number, max_calls?: number, random?: number, max_duration_minutes?: number, max_calls?: number, calls?: number}} SamplerInstructionLine**/
 
 const SamplingLine = module.exports.SamplingLine = class {
 
@@ -33,7 +33,7 @@ const SamplingLine = module.exports.SamplingLine = class {
             this.time_start = new Date().getTime();
         }
         /** @type {number} */
-        this.max_collect = props.max_collect;
+        this.max_calls = props.max_calls;
         /** @type {number} */
         this.collected = 0;
 
@@ -61,7 +61,22 @@ const SamplingLine = module.exports.SamplingLine = class {
      */
     shouldCollectAndTick() {
 
+        if (this.calls !== undefined) {
+            ++this.call_offset;
+            if (this.call_offset !== this.calls) {
+                return false;
+            }
+            this.call_offset = 0;
+        }
+        if (this.random !== undefined && Math.random() < this.random) {
+            return false;
+        }
+
         const now = new Date().getTime();
+        if (this.max_duration_minutes !== undefined && now - this.time_start >= 60 * 1000 * this.max_duration_minutes) {
+            this.isFinished = true;
+            return false;
+        }
 
         if (this.minuteStart !== undefined) {
             const currentMinuteStart = SamplingLine.timeToFlatMinute(now);
@@ -72,31 +87,13 @@ const SamplingLine = module.exports.SamplingLine = class {
                 this.minuteStart = currentMinuteStart;
                 this.minuteCollected = 0;
             }
+            ++this.minuteCollected;
         }
 
-        if (this.max_duration_minutes !== undefined && now - this.time_start >= 60 * 1000 * this.max_duration_minutes) {
+        if (this.max_calls !== undefined && this.collected >= this.max_calls) {
             this.isFinished = true;
             return false;
         }
-
-        if (this.max_collect !== undefined && this.collected >= this.max_collect) {
-            this.isFinished = true;
-            return false;
-        }
-        if (this.random !== undefined && Math.random() > this.random) {
-            return false;
-        }
-        if (this.calls !== undefined) {
-            ++this.call_offset;
-            if (this.call_offset === this.calls) {
-                this.call_offset = 0;
-                ++this.collected;
-                ++this.minuteCollected;
-                return true;
-            }
-            return false;
-        }
-        ++this.minuteCollected;
         ++this.collected;
         return true;
     }

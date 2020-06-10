@@ -18,9 +18,11 @@ const supportGetHeaders = Semver.satisfies(process.version, '>= 7.7.0');
  * @typedef {import('http').ServerResponse} ServerResponse
  * @typedef {import('http').OutgoingHttpHeaders} OutgoingHttpHeaders
  *
+ * @typedef {import('./reveal').SessionID} SessionID
  * @typedef {import('./reveal').Environment} Environment
  * @typedef {import('./reveal').RuntimeVersion} RuntimeVersion
  * @typedef {import('./reveal').Run} Run
+ * @typedef {import('./reveal').RunID} RunID
  * @typedef {import('./reveal').Options} Options
  * @typedef {import('./reveal').InputRequest} InputRequest
  * @typedef {import('./reveal').Request} Request
@@ -109,22 +111,30 @@ const Fuzzer = module.exports = class extends Events.EventEmitter {
     /**
      * Get current session ID.
      *
-     * @returns {string | null} SessionID if successful, null if not.
+     * @returns {SessionID} Session ID if successful.
      */
     get sessionid() {
 
-        return this._runtime.getSessionID(this._id);
+        if (!this._sessionid) {
+            this._sessionid = this._runtime.getSessionID(this._id);
+        }
+        return this._sessionid;
     }
     //$lab:coverage:on$
 
     /**
      * Get current run ID.
      *
-     * @returns {string | null} RunID if successful, null if not.
+     * @returns {RunID} Run ID if successful.
      */
     get runid() {
 
-        return this._runtime.getRunID(this._id);
+        //$lab:coverage:off$
+        if (!this._runid) {
+            //$lab:coverage:on$
+            this._runid = this._runtime.getRunID(this._id);
+        }
+        return this._runid;
     }
 
     /**
@@ -425,6 +435,23 @@ const Fuzzer = module.exports = class extends Events.EventEmitter {
     // $lab:coverage:on$
 
     /**
+     * Get request Reveal session ID.
+     *
+     * @param {IncomingMessage} req - A native HTTP request.
+     * @returns {SessionID | undefined} Session ID if successful (or undefined if not).
+     */
+    static getSessionID(req) {
+
+        const fuzzerrequest = Fuzzer._getFuzzerRequest(req);
+        // $lab:coverage:off$
+        if (fuzzerrequest === null) {
+            return;
+        }
+        // $lab:coverage:on$
+        return fuzzerrequest.sessionid;
+    };
+
+    /**
      * Test if a request is being replayed.
      *
      * @param {IncomingMessage} _req - A native HTTP request.
@@ -432,10 +459,8 @@ const Fuzzer = module.exports = class extends Events.EventEmitter {
      */
     static isRequestReplayed(_req) {
 
-        // $lab:coverage:off$
         const req = /** @type FuzzerIncomingMessage */ (_req);
         return req && !!req.__sqreen_replayed;
-        // $lab:coverage:on$
     };
 
     /**

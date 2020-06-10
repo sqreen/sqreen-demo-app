@@ -13,8 +13,10 @@
  * @typedef {import('./reveal').Options} Options
  */
 
-const Logger = require('../logger');
+const Joi = require('joi-browser');
 const AsyncLock = require('async-lock');
+
+const Logger = require('../logger');
 const BackEnd = require('../backend');
 const Agent = require('../agent');
 const FakeRequest = require('./fakerequest');
@@ -76,53 +78,79 @@ const ready = module.exports.ready = function () {
     // $lab:coverage:on$
 };
 
+const runtimeSchema = Joi.object({
+    code: Joi.string().min(1),
+    version: Joi.number().positive(),
+    signatures: Joi.array().items(Joi.object({
+        type: Joi.number().positive(),
+        value: Joi.string().min(1)
+    }))
+}).unknown(true);
+
+/**
+ * @param {object} rawruntime - A Reveal runtime.
+ * @returns {Runtime | null} - A (validated) Reveal runtime (or null).
+ */
+const validateRuntime = function (rawruntime) {
+
+    const result = Joi.validate(rawruntime, runtimeSchema);
+
+    // $lab:coverage:off$
+    if (result.error) {
+        return null;
+    }
+    // $lab:coverage:on$
+    return result.value;
+};
+
 /**
  * Validate and (re)load the runtime.
  *
  * @param {Runtime} runtime - Reload command parameters.
+ * @returns {number}  Returns the (re)loaded runtime version.
  */
 const reloadRuntime = function (runtime) {
 
     // $lab:coverage:off$
-    if (!runtime || !runtime.code) {
-        return false;
-    }
     if (!STATE.isUninitialized() &&
         !STATE.isStopped()) {
-        return false;
+        throw new Error('Cannot reload Reveal runtime during a run!');
     }
-    Logger.DEBUG('Checking signature for reveal runtime');
     // $lab:coverage:on$
+    Logger.DEBUG('Checking signature for Reveal runtime');
     if (!Signature.verifyRuntimeSignature(runtime)) {
-        Logger.ERROR('Invalid reveal runtime signature!');
-        return false;
+        throw new Error('Invalid Reveal runtime signature!');
     }
     FUZZER = runtime.code;
     STATE.stopped();
-    return true;
+    return runtime.version;
 };
 
 /**
  * (Re)load the fuzzer code.
  *
- * @returns {Promise<undefined>}
+ * @returns {Promise<number>} Return runtime version (or an error on reject).
  */
 module.exports.reload = function () {
 
     return REVEAL_LOCK(() =>
 
         BackEnd.reveal_runtime(Agent.SESSION_ID())
-            .then((runtime) => {
+            .then((rawruntime) => {
 
-                if (!runtime.status || !runtime.version) {
-                    throw new Error('Reveal backend failed to send a runtime.');
+                // $lab:coverage:off$
+                if (!rawruntime || !rawruntime.status) {
+                    // $lab:coverage:on$
+                    throw new Error('Reveal backend failed to send a runtime!');
                 }
+                const runtime = validateRuntime(rawruntime);
+                // $lab:coverage:off$
+                if (runtime === null) {
+                    throw new Error('Invalid Reveal runtime payload!');
+                }
+                // $lab:coverage:on$
                 Logger.INFO(`Reloading reveal runtime (version: ${runtime.version})`);
-                const res = reloadRuntime(runtime);
-                if (!res) {
-                    throw new Error('Runtime reload failed...');
-                }
-                return;
+                return reloadRuntime(runtime);
             }));
 };
 
@@ -131,7 +159,7 @@ module.exports.reload = function () {
   * See `reveal-fuzzer` types for reference.
   *
   * @param {Run} run - A Run object (JSON compatible).
-  * @returns {string | undefined} Return a run UUID (or undefined in case of failure).
+  * @returns {string} Return a run ID (or throw an error).
   */
 const startFuzzerSafe = function (run) {
 
@@ -147,31 +175,53 @@ const startFuzzerSafe = function (run) {
     return ret;
 };
 
+const sessionIDSchema = Joi.string().regex(/^session_[a-fA-F0-9]{32}$/);
+
+/**
+ * @param {string} rawsessionid - A Reveal session (unique) id.
+ * @returns {SessionID | null} - A (validated) Reveal session (unique) id (or null).
+ */
+const validateSessionID = function (rawsessionid) {
+
+    const result = Joi.validate(rawsessionid, sessionIDSchema);
+
+    // $lab:coverage:off$
+    if (result.error) {
+        return null;
+    }
+    // $lab:coverage:on$
+    return result.value;
+};
+
 /**
  * Start the fuzzer using a given 'run' (queries to be replayed along with their associated metadata).
  * See `reveal-fuzzer` types for reference.
  *
-  * @param {SessionID} sessionid - A reveal session (unique) id.
- * @returns {Promise<string>} Return a run UUID (or undefined in case of failure).
+ * @param {SessionID} rawsessionid - A reveal session (unique) id.
+ * @returns {Promise<string>} Return a run ID (or an error on reject).
  */
-module.exports.start = function (sessionid) {
+module.exports.start = function (rawsessionid) {
 
     return REVEAL_LOCK(() => {
 
         if (!ready()) {
-            return Promise.reject(new Error('Reveal is not ready.'));
+            return Promise.reject(new Error('Reveal is not ready!'));
         }
+        const sessionid = validateSessionID(rawsessionid);
+        // $lab:coverage:off$
+        if (sessionid === null) {
+            return Promise.reject(new Error('Invalid Reveal session ID!'));
+        }
+        // $lab:coverage:on$
         return BackEnd.reveal_run(Agent.SESSION_ID(), { session_id: sessionid })
             .then((run) => {
 
-                if (!run.status) {
-                    throw new Error('Reveal backend failed to send a run.');
+                // $lab:coverage:off$
+                if (!run || !run.status) {
+                    // $lab:coverage:on$
+                    throw new Error('Reveal backend failed to send a run!');
                 }
-                const runid = startFuzzerSafe(run);
-                if (!runid) {
-                    throw new Error('Reveal failed to start...');
-                }
-                return runid;
+                return startFuzzerSafe(run);
             });
     });
 };
@@ -208,13 +258,13 @@ const recordStats = (stats, done) => {
  * See `reveal-fuzzer` types for reference.
  *
  * @param {object} rawrun - A Run object (JSON compatible).
- * @returns {string | undefined} Return a run UUID (or undefined in case of failure).
+ * @returns {string} Return a run ID (or throw an error).
  */
 const startFuzzer = function (rawrun) {
 
     // $lab:coverage:off$
     if (!ready()) {
-        return;
+        throw new Error('Reveal is not ready!');
     }
     // $lab:coverage:on$
 
@@ -224,8 +274,7 @@ const startFuzzer = function (rawrun) {
     const run = Fuzzer.validateRun(runtime, rawrun);
     // $lab:coverage:off$
     if (!run) {
-        Logger.ERROR('Reveal received an invalid run.');
-        return;
+        throw new Error('Reveal received an invalid run.');
     }
 
     const deps = !!DEPENDENCIES ? Object.keys(DEPENDENCIES) : [];
@@ -240,8 +289,7 @@ const startFuzzer = function (rawrun) {
     const env = Fuzzer.validateEnv(runtime, rawenv);
     // $lab:coverage:off$
     if (!env) {
-        Logger.ERROR('Reveal received an invalid environment.');
-        return;
+        throw new Error('Reveal received an invalid environment.');
     }
     // $lab:coverage:on$
 
@@ -250,8 +298,7 @@ const startFuzzer = function (rawrun) {
     // register a new run
     const fuzzer = new Fuzzer(runtime, env, run);
     if (!fuzzer.isValid()) {
-        Logger.ERROR('Reveal failed to init fuzzer with current run.');
-        return;
+        throw new Error('Reveal failed to init fuzzer with current run!');
     }
     const runID = fuzzer.runid;
 
@@ -310,11 +357,11 @@ const startFuzzer = function (rawrun) {
             const timeout = !STATE.isTerminating();
             // $lab:coverage:off$
             if (timeout) {
-                Logger.ERROR('Forced shutdown after timeout');
+                Logger.WARN('Forced shutdown after timeout');
             }
             else {
                 // $lab:coverage:on$
-                Logger.ERROR('Forced shutdown');
+                Logger.WARN('Forced shutdown');
             }
             fuzzerDone(timeout);
         }

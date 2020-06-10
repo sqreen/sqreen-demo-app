@@ -152,7 +152,8 @@ const addSignature = function (bundlePart) {
 
 module.exports.getDependencies = function (signature) {
 
-    let baseDir = Config.getConfig(true).app_root;
+    const config = Config.getConfig(true);
+    let baseDir = config.app_root;
     if (!isBaseDir(baseDir)) {
         const old = baseDir;
         baseDir = SafeUtil.guessRoot();
@@ -161,8 +162,27 @@ module.exports.getDependencies = function (signature) {
             return Promise.reject(new Error(`no 'node_modules' directory at project root -  tried ${old} and ${baseDir}`));
         }
     }
-    const res = listModules(Path.join(baseDir, 'node_modules'))
+    let res = listModules(Path.join(baseDir, 'node_modules'))
         .then((deps) => ({ deps, hash: signature }));
+
+    if (config.use_workspace === true) {
+        // We are in a workspace. Let's get upstairs and check if this is a
+        // yarn root (i.e. it has a yarn.lock file
+        const upstairs = Path.dirname(baseDir);
+
+        const getUpstairs = listModules(Path.join(upstairs, 'node_modules'))
+            .catch(() => []);
+
+        res = Promise.all([res, getUpstairs])
+            .then((result) => {
+
+                const final = result[0];
+                const ups = result[1];
+                final.deps = final.deps.concat(ups);
+                return final;
+            });
+    }
+
 
     if (signature) {
         return res;

@@ -6,8 +6,6 @@
 const STATUS = require('http').STATUS_CODES;
 const Https = require('https');
 const Url = require('url');
-const HttpsProxyAgent = require('https-proxy-agent');
-const HttpProxyAgent = require('http-proxy-agent');
 
 const Wreck = require('../../vendor/wreck/lib/index').defaults({
     timeout: 60000,
@@ -26,8 +24,8 @@ const setupProxy = function (proxyURL) {
 
     if (proxyURL) {
         Object.assign(agentOption, Url.parse(proxyURL)); // https://github.com/TooTallNate/node-https-proxy-agent/blob/master/index.js#L27
-        Wreck.agents.https = new HttpsProxyAgent(agentOption);
-        Wreck.agents.http = new HttpProxyAgent(agentOption);
+        Wreck.agents.https = new require('https-proxy-agent')(agentOption);
+        Wreck.agents.http = new require('http-proxy-agent')(agentOption);
     }
     else {
         Wreck.agents.https = new Https.Agent(agentOption);

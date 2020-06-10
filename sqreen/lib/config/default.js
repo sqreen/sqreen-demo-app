@@ -8,6 +8,7 @@ const Logger = require('../logger');
 
 module.exports = {
     url: 'https://back.sqreen.io',
+    ingestion_url: 'https://ingestion.sqreen.com',
     rules_verify_signature: true,
     log_level: Logger.logLevels.WARN,
     log_location: '',
@@ -22,6 +23,7 @@ module.exports = {
     app_root: process.cwd(),
     strip_sensitive_keys: ['password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey', 'access_token'],
     strip_sentitive_regex: [/^(?:\d[ -]*?){13,16}$/],
-    heartbeat_delay: 0
+    heartbeat_delay: 0,
+    use_workspace: false
 };
 

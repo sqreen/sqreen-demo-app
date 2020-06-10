@@ -33,7 +33,7 @@ module.exports.SIGNAL_AGENT_VERSION = `sqreen:agent:${VERSION}`;
 
 module.exports.PAYLOAD_SCHEMA = {
     ATTACK: 'attack/2020-01-01T00:00:00.000Z',
-    EXCEPTIONS: 'exception/2020-01-01T00:00:00.000Z',
+    EXCEPTIONS: 'sqreen_exception/2020-01-01T00:00:00.000Z',
     SDK_TRACK: 'track_event/2020-01-01T00:00:00.000Z',
     METRIC: 'metric/2020-01-01T00:00:00.000Z',
     BINNING_METRIC: 'metric_binning/2020-01-01T00:00:00.000Z',

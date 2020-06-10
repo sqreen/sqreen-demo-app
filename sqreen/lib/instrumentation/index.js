@@ -11,9 +11,5 @@ DefaultMetrics.enableCallCount();
 OldDefaultMetrics.enableCallCount();
 ModuleHijacker.enable();
 
-// Always start instrumentation for http and https
-require('./hooks/tracingHook')
-    .enable(require('http'), require('./moduleIdentity').scan('http', module));
-
-require('./hooks/tracingHook')
-    .enable(require('https'), require('./moduleIdentity').scan('https', module));
+require('http');
+require('https');

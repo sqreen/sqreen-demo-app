@@ -216,3 +216,8 @@ module.exports.parseStackTraceLine = function (line) {
         lineno: parseInt(matchOld[2])
     };
 };
+
+module.exports.isEmitter = function (emitter) {
+
+    return !!emitter.on && !!emitter.addListener && !!emitter.emit;
+};

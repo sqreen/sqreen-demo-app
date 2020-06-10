@@ -2,6 +2,8 @@
 const VM = require('vm');
 
 const UUID = require('uuid');
+
+const Fuzzer = require('../../fuzzer');
 const Logger = require('../../logger');
 const Builder = require('./callbackBuilder');
 const Utils = require('./utils');
@@ -72,7 +74,7 @@ module.exports.getCbs = function (rule) {
     const run = function (args, value, _, selfObject, session) {
 
         const req = session.req;
-        if (!req) {
+        if (!req || (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req))) {
             return null;
         }
         const params = {};

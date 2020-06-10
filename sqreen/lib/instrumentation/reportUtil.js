@@ -5,6 +5,7 @@
 'use strict';
 const Hoek = require('../../vendor/hoek/lib/index');
 const Config = require('../config/index');
+const Fuzzer = require('../fuzzer');
 
 const pick = function (headers, toPick) {
 
@@ -134,7 +135,9 @@ module.exports.mapRequestAndArrayHeaders = function (req, withPayload, sanitized
         }
     }
     res.headers = heads;
-    res.isRevealReplayed = !!req.__sqreen_replayed;
+    // $lab:coverage:off$
+    res.isRevealReplayed = Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req);
+    // $lab:coverage:on$
     return res;
 };
 

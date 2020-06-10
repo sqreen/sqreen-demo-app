@@ -27,6 +27,7 @@ if (canLoadReveal) {
     INTERFACE.stop = main.stop;
     const fuzzer = require('./fuzzer');
     INTERFACE.isRequestReplayed = fuzzer.isRequestReplayed;
+    INTERFACE.getSessionID = fuzzer.getSessionID;
     INTERFACE.updateRequestMetric = fuzzer.updateRequestMetric;
     INTERFACE.recordSignal = fuzzer.recordSignal;
     INTERFACE.recordTrace = fuzzer.recordTrace;

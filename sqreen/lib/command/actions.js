@@ -247,6 +247,35 @@ const commands = {
     reveal_stop: function () {
 
         return callReveal.apply('stop');
+    },
+    tracing_enable: function (params) {
+        /*params = [{
+            'http.client': {
+                enabled: true,
+                sampling: [SamplingExpression]
+        }*/
+        if (!params) {
+            return Promise.reject(new Error('missing parameters'));
+        }
+        const param0 = params[0];
+        const param1 = params[1];
+        if (!param1) { // no need to check params[0] actually
+            return Promise.reject(new Error('missing parameters'));
+        }
+        const TracingInterface = require('../instrumentation/tracingInterface');
+        TracingInterface.setTracingIdentifierPrefix(param0);
+        const scopeList = Object.keys(param1);
+        for (let i = 0; i < scopeList.length; ++i) {
+            const scope = scopeList[i];
+            const todo = param1[scope];
+            try {
+                TracingInterface.updateScopeSampling(scope, todo);
+            }
+            catch (e) {
+                return Promise.reject(e);
+            }
+        }
+        return Promise.resolve();
     }
 };
 module.exports = commands;

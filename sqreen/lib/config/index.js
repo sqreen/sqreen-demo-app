@@ -17,6 +17,7 @@ const LOG_LEVELS = Object.keys(Logger.levels);
 
 const configSchema = Joi.object().keys({
     url: Joi.string().uri().default(DEFAULT.url),
+    ingestion_url: Joi.string().uri().default(DEFAULT.ingestion_url),
     token: Joi.string().required(),
     local_rules: Joi.string().optional(),
     rules_verify_signature: Joi.boolean().truthy('true', 'yes', 1, '1').falsy('false', 'no', 0, '0').default(DEFAULT.rules_verify_signature),
@@ -33,7 +34,8 @@ const configSchema = Joi.object().keys({
     app_name: Joi.string().default(''),
     strip_sensitive_keys: Joi.array().items(Joi.string()).default(DEFAULT.strip_sensitive_keys),
     strip_sentitive_regex: Joi.array().items(Joi.object().type(RegExp)).default(DEFAULT.strip_sentitive_regex),
-    heartbeat_delay: Joi.number().positive().max(120).default(DEFAULT.heartbeat_delay)
+    heartbeat_delay: Joi.number().positive().max(120).default(DEFAULT.heartbeat_delay),
+    use_workspace: Joi.boolean().truthy('true', 'yes', 1, '1').falsy('false', 'no', 0, '0').default(DEFAULT.use_workspace)
 });
 
 let agentConfig;
@@ -174,6 +176,11 @@ const readConfig = function (from) {
     if (process.env.SQREEN_URL) {
         config.url = process.env.SQREEN_URL;
     }
+    //$lab:coverage:off$
+    if (process.env.SQREEN_INGESTION_URL) {
+        config.ingestion_url = process.env.SQREEN_INGESTION_URL;
+    }
+    //$lab:coverage:on$
     if (process.env.SQREEN_TOKEN) {
         config.token = process.env.SQREEN_TOKEN;
     }
@@ -215,6 +222,9 @@ const readConfig = function (from) {
     }
     if (process.env.SQREEN_STRIP_SENSITIVE_DATA) {
         config.strip_sensitive_data = asBoolean(process.env.SQREEN_STRIP_SENSITIVE_DATA);
+    }
+    if (process.env.SQREEN_USE_WORKSPACE) {
+        config.use_workspace = asBoolean(process.env.SQREEN_USE_WORKSPACE);
     }
     if (process.env.SQREEN_APP_ROOT) {
         config.app_root = process.env.SQREEN_APP_ROOT;

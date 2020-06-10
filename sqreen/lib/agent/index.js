@@ -19,6 +19,10 @@ const Features = require('../command/features');
 const MetricReport = require('../metric/report');
 const INTERNAL_MESSAGES = require('../enums/agent').INTERNAL_MESSAGES;
 
+const EcoSystemInterfaces = require('../ecosystem/index');
+const Ecosystem = require('sq-ecosystem');
+Ecosystem.init(Logger, EcoSystemInterfaces);
+
 const getMessage = function () {
 
     if (Features.featureHolder.use_signals === true) {

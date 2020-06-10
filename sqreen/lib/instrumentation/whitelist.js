@@ -40,7 +40,7 @@ module.exports.whitelistThesePaths = function (pathList) {
 
 module.exports.pathIsWhiteListed = function (path) {
 
-    if (!path || list.length === 0) {
+    if (!path || typeof path !== 'string' || list.length === 0) {
         return '';
     }
 

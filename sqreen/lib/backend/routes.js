@@ -26,5 +26,5 @@ module.exports = {
     // Reveal
     reveal_runtime: Config.url + '/sqreen/' + V1 + '/reveal/runtime/1',
     reveal_run: Config.url + '/sqreen/' + V1 + '/reveal/run',
-    signal_batch: 'https://ingestion.sqreen.com/batches'
+    signal_batch: Config.ingestion_url + '/batches'
 };

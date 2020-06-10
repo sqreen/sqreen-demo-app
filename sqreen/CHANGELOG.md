@@ -2,6 +2,157 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.43.0]
+### Added
+
+* introduces sq-ecosystem
+* introduces transport/tracing for HTTP
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+N/A
+
+### Security
+
+N/A
+
+## [1.42.0]
+### Added
+
+* introduces `use_workspace` configuration key
+
+### Changed
+
+* removed `beta` flag from attack signals
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* lazy load HTTP proxy agents to reduce interactions with other modules
+
+### Security
+
+N/A
+
+## [1.41.3]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* lazy load HTTP proxy agents to reduce interactions with other modules
+
+### Security
+
+N/A
+
+## [1.41.3]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* lazy load HTTP proxy agents to reduce interactions with other modules
+
+### Security
+
+N/A
+
+## [1.41.2]
+### Added
+
+N/A
+
+### Changed
+
+* agent messages to not use signals anymore
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+N/A
+
+### Security
+
+N/A
+
+## [1.41.1]
+### Added
+
+N/A
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* agent message to use the location_infra field
+
+### Security
+
+N/A
+
 ## [1.41.0]
 ### Added
 

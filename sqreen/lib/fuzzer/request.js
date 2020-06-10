@@ -8,6 +8,7 @@
 const Trace = require('./trace');
 
 /**
+ * @typedef {import('./reveal').SessionID} SessionID
  * @typedef {import('./reveal').Request} Request
  * @typedef {import('./reveal').RequestResult} RequestResult
  * @typedef {import('./reveal').FuzzRequestResult} FuzzRequestResult
@@ -18,11 +19,12 @@ const Trace = require('./trace');
 
 module.exports = class {
     /**
-     * @param {Fuzzer} fuzzer - A Runtime instance.
+     * @param {Fuzzer} fuzzer - A Fuzzer instance.
      * @param {Request} request - A mutated request.
      */
     constructor(fuzzer, request) {
 
+        this._sessionid = fuzzer.sessionid;
         this._runtime = fuzzer._runtime;
         this._fid = fuzzer._id;
         this._id = this._runtime.initRequest(this._fid, request);
@@ -36,6 +38,16 @@ module.exports = class {
     isValid() {
 
         return this._id !== null;
+    }
+
+    /**
+     * Get current session ID.
+     *
+     * @returns {SessionID} Session ID if successful.
+     */
+    get sessionid() {
+
+        return this._sessionid;
     }
 
     /**

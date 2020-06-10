@@ -5,34 +5,26 @@
 'use strict';
 const Crypto = require('crypto');
 
-const SqreenSDK = require('sqreen-sdk');
-const SignalUtils = require('../signals/utils');
-
+const Events = require('../events/index');
+const EVENT_TYPES = require('../enums/events').TYPE;
 
 const knownMessages = new Set();
 
-const AgentMessage = class extends SqreenSDK.Point {
+const AgentMessage = class {
 
     constructor(kind, message, infos) {
 
-        super('sqreen:agent', 'sq.agent.message.' + kind, new Date());
-
-        infos = infos || {};
-        message = message || '';
-        const hashCreator = Crypto.createHash('sha1');
-        hashCreator.update(message);
-        const hash = hashCreator.digest('hex');
-
-        this.payload_schema = 'agent_message/2020-01-01T00:00:00.000Z';
-        this.payload = {
-            infos, message, hash
-        };
-        this.location = { infra: SignalUtils.infra };
+        this.kind = kind;
+        this.message = message || '';
+        this.infos = infos || {};
+        const hash = Crypto.createHash('sha1');
+        hash.update(this.message);
+        this.id = hash.digest('hex');
     }
 
     canReport() {
 
-        return !knownMessages.has(this.payload.hash);
+        return !knownMessages.has(this.id);
     }
 
     report() {
@@ -40,9 +32,8 @@ const AgentMessage = class extends SqreenSDK.Point {
         if (!this.canReport()) {
             return Promise.resolve();
         }
-        knownMessages.add(this.payload.hash);
-        this.BATCH.add(this);
-        return Promise.resolve();
+        knownMessages.add(this.id);
+        return Events.writeEvent(EVENT_TYPES.AGENT_MESSAGE, this);
     }
 
     static initKnownMessages(messageList) {

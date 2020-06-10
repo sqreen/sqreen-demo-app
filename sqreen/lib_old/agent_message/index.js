@@ -3,6 +3,8 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+//$lab:coverage:off$
+
 const Crypto = require('crypto');
 
 const Events = require('../events/index');
@@ -51,3 +53,4 @@ AgentMessage.KIND = {
 };
 
 module.exports = AgentMessage;
+//$lab:coverage:on$

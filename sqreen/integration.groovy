@@ -1,10 +1,10 @@
-String[] TARGETS = ["8"]
+String[] TARGETS = ["12"]
 // , "10", "12"]
 String[] SETUPS = ["express4"]
 // , "express4_pm2"]
 
 
-def runTests(version = '8', setup = 'express4') {
+def runTests(version = '12', setup = 'express4') {
 
     def branch = env.BRANCH_NAME
     if (branch.startsWith('PR-')) {

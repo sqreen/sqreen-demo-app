@@ -3,6 +3,8 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
+const EventEmitter = require('events').EventEmitter;
+
 const Exception = require('../exception');
 const Agent = require('../agent');
 const SqreenSDK = require('sqreen-sdk');
@@ -10,6 +12,8 @@ const EventActions = require('../../lib_old/events/action');
 const Event = require('../events');
 
 const InstruState = require('../instrumentation/state');
+
+const FEATURE_EMITTER = module.exports.FEATURE_EMITTER = new EventEmitter();
 
 module.exports.switchInstrumentationState = function (state) {
 
@@ -218,6 +222,8 @@ const readParam = function (param) {
         const previous = featureHolder[key];
         featureHolder[key] = param[key];
         commands[key](param[key], previous);
+
+        FEATURE_EMITTER.emit(key, param[key]);
     });
 };
 

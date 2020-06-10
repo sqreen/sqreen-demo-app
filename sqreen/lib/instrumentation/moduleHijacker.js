@@ -11,10 +11,10 @@ const Logger = require('../logger');
 const Module = require('module');
 const Patcher = require('./patcher');
 const ModuleIdentity = require('./moduleIdentity');
-const Tracing = require('./hooks/tracingHook');
 const Hooks = require('./hooks');
 const Templateengines = require('./templateEngines');
 const Exception = require('../exception');
+const InstrumentationInterface = require('./instrumentationInterface');
 
 const DO_NOT_HJ = [
     'continuation-local-storage',
@@ -83,14 +83,13 @@ module.exports.enable = function () {
             nativeCache[file] = loadedModule;
         }
 
-
-        if (request === 'http' || request === 'https') { // specific hook to trace http requests
-            try {
-                Tracing.enable(loadedModule, identity);
-            }
-            catch (err) {
-                logErr(err, request);
-            }
+        try {
+            InstrumentationInterface.loader.emit(request, { module: loadedModule, identity });
+        }
+        catch (err) {
+            //$lab:coverage:off$
+            logErr(err, request);
+            //$lab:coverage:on$
         }
 
         if (Hooks.hasOwnProperty(request)) {
@@ -102,6 +101,7 @@ module.exports.enable = function () {
             }
         }
 
+        // TODO: remove (ecosystem)
         try {
             Templateengines.hook(request);
         }
