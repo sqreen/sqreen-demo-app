@@ -84,7 +84,7 @@ const runtimeSchema = Joi.object({
     signatures: Joi.array().items(Joi.object({
         type: Joi.number().positive(),
         value: Joi.string().min(1)
-    }))
+    }).unknown(true))
 }).unknown(true);
 
 /**
