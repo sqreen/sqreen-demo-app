@@ -57,14 +57,6 @@ const isEmpty = function (val) {
     return false;
 };
 
-const randBoolWithRatio = function (ratio) {
-
-    if (!ratio || typeof ratio !== 'number' || ratio < 0) {
-        return false;
-    }
-    return Math.random() < (ratio / 100.0);
-};
-
 const operators = {
     '%and': (a, b) => a && b,
     '%or': (a, b) => a || b,
@@ -72,7 +64,6 @@ const operators = {
     '%not_equals': (a, b) => a !== b,
     '%empty': (a) => isEmpty(a),
     '%not_empty': (a) => !isEmpty(a),
-    '%chance': (a) => randBoolWithRatio(a),
     '%gt': (a, b) => a > b,
     '%gte': (a, b) => a >= b,
     '%lt': (a, b) => a < b,

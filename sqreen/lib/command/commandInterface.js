@@ -10,8 +10,5 @@ const Feature = require('./features');
 const NAME = 'command';
 const commandInterface = module.exports = new EcosystemInterface(NAME);
 
-commandInterface.features = {
-    read: Feature.read,
-    emitter: Feature.FEATURE_EMITTER
-};
+commandInterface.features = Feature;
 

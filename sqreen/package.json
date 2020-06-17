@@ -1,6 +1,6 @@
 {
   "name": "sqreen",
-  "version": "1.43.0",
+  "version": "1.44.0",
   "main": "index.js",
   "scripts": {
     "test": "lab -cLv -a code -t 100 -R -I SharedArrayBuffer,Atomics,URLSearchParams,URL,BigUint64Array,BigInt64Array,BigInt,TextEncoder,TextDecoder,queueMicrotask",
@@ -73,10 +73,10 @@
     "recursive-readdir": "^2.1.0",
     "semver": "^5.2.0",
     "shimmer": "^1.2.0",
-    "sqreen-sdk": "^0.7.0",
     "sq-ecosystem": "^0.4.0",
+    "sqreen-sdk": "^0.7.0",
     "uuid": "^3.1.0",
-    "winston": "^2.2.0",
+    "winston": "^2.4.4",
     "zxcvbn": "^4.4.2"
   },
   "dependencies_details": {

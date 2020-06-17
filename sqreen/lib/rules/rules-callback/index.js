@@ -27,5 +27,6 @@ module.exports = {
     IPBlacklistCB: require('./iPBlacklistCB').getCBs,
     TakeTimeCB: require('./takeTime').getCbs,
     CaptureCB: require('./captureCB').getCbs,
-    LibSqreenCB: require('./libSqreenCB').getCbs
+    LibSqreenCB: require('./libSqreenCB').getCbs,
+    AuthTrackCB: require('./authTrack').getCbs
 };

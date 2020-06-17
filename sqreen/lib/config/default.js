@@ -24,6 +24,7 @@ module.exports = {
     strip_sensitive_keys: ['password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey', 'access_token'],
     strip_sentitive_regex: [/^(?:\d[ -]*?){13,16}$/],
     heartbeat_delay: 0,
-    use_workspace: false
+    use_workspace: false,
+    workspace_depth: 1
 };
 

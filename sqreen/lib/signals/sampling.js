@@ -5,7 +5,7 @@
 'use strict';
 
 /** @typedef  {{target_per_minute?: number, max_calls?: number, random?: number, max_duration_minutes?: number, max_calls?: number, calls?: number}} SamplerInstructionLine**/
-
+const VALID_PRIMITIVES = new Set(['target_per_minute', 'max_calls', 'random', 'max_duration_minutes', 'calls']);
 const SamplingLine = module.exports.SamplingLine = class {
 
     /**
@@ -14,7 +14,7 @@ const SamplingLine = module.exports.SamplingLine = class {
      */
     static timeToFlatMinute(time) {
 
-        return Math.floor(time / 10000) * 10000;
+        return Math.floor(time / 60000) * 60000;
     }
 
     /**
@@ -30,7 +30,7 @@ const SamplingLine = module.exports.SamplingLine = class {
         this.max_duration_minutes = props.max_duration_minutes;
         if (this.max_duration_minutes !== undefined) {
             /** @type {number} */
-            this.time_start = new Date().getTime();
+            this.time_start = Date.now();
         }
         /** @type {number} */
         this.max_calls = props.max_calls;
@@ -50,7 +50,7 @@ const SamplingLine = module.exports.SamplingLine = class {
             /** @type {number} */
             this.target_per_minute = props.target_per_minute;
             /** @type {number} */
-            this.minuteStart = SamplingLine.timeToFlatMinute(new Date().getTime());
+            this.minuteStart = SamplingLine.timeToFlatMinute(Date.now());
         }
         /** @type {number} */
         this.minuteCollected = 0;
@@ -72,7 +72,7 @@ const SamplingLine = module.exports.SamplingLine = class {
             return false;
         }
 
-        const now = new Date().getTime();
+        const now = Date.now();
         if (this.max_duration_minutes !== undefined && now - this.time_start >= 60 * 1000 * this.max_duration_minutes) {
             this.isFinished = true;
             return false;
@@ -99,6 +99,18 @@ const SamplingLine = module.exports.SamplingLine = class {
     }
 };
 
+const isValid = function (instructions) {
+
+    const keyList = Object.keys(instructions);
+    for (let i = 0; i < keyList.length; ++i) {
+        const key = keyList[i];
+        if (VALID_PRIMITIVES.has(key) === false) {
+            return false;
+        }
+    }
+    return true;
+};
+
 const EMPTY_TRIGGER = {};
 module.exports.Sampler = class {
 
@@ -115,7 +127,9 @@ module.exports.Sampler = class {
         this.alwaysTrue = properties.length === 0;
 
         /** @type {SamplingLine[]} */
-        this.lines = properties.map((x) => new SamplingLine(x));
+        this.lines = properties
+            .filter(isValid)
+            .map((x) => new SamplingLine(x));
     }
 
     /**

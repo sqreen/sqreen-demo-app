@@ -35,7 +35,8 @@ const configSchema = Joi.object().keys({
     strip_sensitive_keys: Joi.array().items(Joi.string()).default(DEFAULT.strip_sensitive_keys),
     strip_sentitive_regex: Joi.array().items(Joi.object().type(RegExp)).default(DEFAULT.strip_sentitive_regex),
     heartbeat_delay: Joi.number().positive().max(120).default(DEFAULT.heartbeat_delay),
-    use_workspace: Joi.boolean().truthy('true', 'yes', 1, '1').falsy('false', 'no', 0, '0').default(DEFAULT.use_workspace)
+    use_workspace: Joi.boolean().truthy('true', 'yes', 1, '1').falsy('false', 'no', 0, '0').default(DEFAULT.use_workspace),
+    workspace_depth: Joi.number().positive().default(DEFAULT.workspace_depth)
 });
 
 let agentConfig;
@@ -225,6 +226,9 @@ const readConfig = function (from) {
     }
     if (process.env.SQREEN_USE_WORKSPACE) {
         config.use_workspace = asBoolean(process.env.SQREEN_USE_WORKSPACE);
+    }
+    if (process.env.SQREEN_WORKSPACE_DEPTH) {
+        config.workspace_depth = parseInt(process.env.SQREEN_WORKSPACE_DEPTH, 10);
     }
     if (process.env.SQREEN_APP_ROOT) {
         config.app_root = process.env.SQREEN_APP_ROOT;

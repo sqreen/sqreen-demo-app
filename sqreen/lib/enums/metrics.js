@@ -6,7 +6,9 @@
 module.exports = {
     LOGIN: {
         FAIL: 'auto-login-fail',
-        SUCCESS: 'auto-login-success'
+        SUCCESS: 'auto-login-success',
+        SDK_FAIL: 'sdk-login-fail',
+        SDK_SUCCESS: 'sdk-login-success'
     },
     PERF: {
         SQREEN_CALL_COUNTS: 'sqreen_call_counts',

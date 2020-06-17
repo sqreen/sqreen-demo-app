@@ -70,7 +70,7 @@ const mapRequest = module.exports.mapRequest = function (req, withPayload) {
 
 
 const MAX_ROUNDS = 10;
-const SAFETY = '<Redacted by Sqreen>';
+const SAFETY = module.exports.SAFETY = '<Redacted by Sqreen>';
 const safe = function (data, i, sanitized) {
 
     const conf = Config.getConfig();

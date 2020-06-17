@@ -5,6 +5,7 @@
 'use strict';
 const Feature = require('../../command/features');
 
+const Fuzzer = require('../../fuzzer');
 const LOGIN = require('../../enums/metrics').LOGIN;
 const Util = require('../../util');
 const Logger = require('../../logger');
@@ -13,19 +14,32 @@ module.exports.getCbs = function () {
 
     const pre = function (args, value, rule, selfObject, session) {
 
-        Logger.INFO(`Sqreen login: has session: ${!!(session && session.req)}`);
-
         const userNameRank = selfObject && selfObject._passReqToCallback ? 1 : 0; // or Number(Boolean(sel...))
 
         const fieldName = selfObject && selfObject._usernameField || 'username';
-        const ip = session && session.req &&  Util.getXFFOrRemoteAddress(session.req) || '';
+        const req = session && session.req;
+        const ip = req &&  Util.getXFFOrRemoteAddress(req) || '';
+
+        Logger.INFO(`Sqreen login: has session: ${!!req}`);
 
         const userName = args[userNameRank];
         const done = args[args.length - 1];
         args[args.length - 1] = function (authErr, user, info) {
 
             const now = new Date();
-            const key = JSON.stringify( { keys: [[fieldName, userName]], ip }); // TODO: finx integ tests here
+            const keys = [[fieldName, userName]];
+            let key;
+            // $lab:coverage:off$
+            if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
+                const reveal = {
+                    session_id: Fuzzer.getSessionID(req)
+                };
+                key = JSON.stringify({ keys, ip, reveal });
+                // $lab:coverage:on$
+            }
+            else {
+                key = JSON.stringify( { keys, ip }); // TODO: finx integ tests here
+            }
             if (authErr || !user) {
                 // login fail
                 setImmediate(() => {

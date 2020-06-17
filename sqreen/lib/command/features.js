@@ -5,15 +5,13 @@
 'use strict';
 const EventEmitter = require('events').EventEmitter;
 
-const Exception = require('../exception');
-const Agent = require('../agent');
 const SqreenSDK = require('sqreen-sdk');
 const EventActions = require('../../lib_old/events/action');
 const Event = require('../events');
 
 const InstruState = require('../instrumentation/state');
 
-const FEATURE_EMITTER = module.exports.FEATURE_EMITTER = new EventEmitter();
+const FEATURE_EMITTER = module.exports.FEATURE_EMITTER = module.exports.emitter = new EventEmitter();
 
 module.exports.switchInstrumentationState = function (state) {
 
@@ -27,7 +25,6 @@ const featureHolder = module.exports.featureHolder = {
     call_counts_metrics_period: 60,
     whitelisted_metric: true,
     rules_signature: true,
-    reveal_sampling_ratio: 5,
     perf_level: 1,
     perf_base: 2,
     perf_unit: 0.1,
@@ -99,7 +96,7 @@ const commands = {
      },*/
     heartbeat_delay: function (value) {
 
-        Agent.heartBeatLoopStarter({ firstInterval: value * 1000 });
+        require('../agent').heartBeatLoopStarter({ firstInterval: value * 1000 });
     },
     batch_size: function (value) {
 
@@ -127,7 +124,6 @@ const commands = {
 
         getDefaultMetric().enableCallCount(value);
     },
-    reveal_sampling_ratio: function (value) {}, // state holding
     rules_signature: function (value) {}, // state holding
     whitelisted_metric: function (value) {}, // state holding
     max_radix_size: function (value) {}, // state holding
@@ -137,7 +133,7 @@ const commands = {
         if (value < 0 || value > 1) {
             // Rollback
             featureHolder.exception_cap_alpha = previous;
-            Exception.report(new Error(`exception_cap_alpha must be > 0 and <= 1 - received ${value}`))
+            require('../exception').report(new Error(`exception_cap_alpha must be > 0 and <= 1 - received ${value}`))
                 .catch(() => {});
         }
     },
@@ -146,7 +142,7 @@ const commands = {
         if (value <= 0 || value > 1) {
             // Rollback
             featureHolder.exception_cap_threshold_percentage = previous;
-            Exception.report(new Error(`exception_cap_threshold_percentage must be >= 0 and < 100% - received ${value}`))
+            require('../exception').report(new Error(`exception_cap_threshold_percentage must be >= 0 and < 100% - received ${value}`))
                 .catch(() => {});
         }
     },
@@ -215,7 +211,7 @@ const readParam = function (param) {
     Object.keys(param).forEach((key) => {
 
         if (!commands[key]) {
-            Exception.report(new Error(`no such feature ${key}`)).catch(() => {});
+            require('../exception').report(new Error(`no such feature ${key}`)).catch(() => {});
             return;
         }
 

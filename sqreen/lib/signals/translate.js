@@ -11,12 +11,12 @@ const Util = require('../util');
 const TRANSFORMS = module.exports.TRANSFORMS = {};
 
 const infra = SignalUtils.infra;
-const kAttack_type = require('../constructors/attack').kAttack_type;
+const Attack = require('../constructors/attack');
 
 TRANSFORMS[EVENT_TYPES.ATTACK] = function (atk) {
 
     const source = `sqreen:rule:${atk.rulespack_id}:${atk.rule_name}`;
-    const signal = `sq.agent.attack.${atk[kAttack_type]}`; // TODO: update rules to map on OWASP
+    const signal = `sq.agent.attack.${atk[Attack.kAttack_type]}`; // TODO: update rules to map on OWASP
     const item = new SqreenSDK.Point(signal, source, atk.time);
     item.location = {
         infra,

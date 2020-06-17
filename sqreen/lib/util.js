@@ -52,10 +52,6 @@ module.exports.getClientIpFromRequest = function (req) {
 
 const newHeaderClaims = ['x-forwarded-for', 'x-client-ip', 'x-real-ip', 'x-forwarded', 'x-cluster-client-ip', 'forwarded-for', 'forwarded', 'via'];
 
-if (Config.getConfig() && Config.getConfig().ip_header.length > 0) {
-    newHeaderClaims.unshift(Config.getConfig().ip_header);
-}
-
 const listIPs = function (headers, key) {
 
     if (typeof headers[key] !== 'string') {
@@ -221,3 +217,8 @@ module.exports.isEmitter = function (emitter) {
 
     return !!emitter.on && !!emitter.addListener && !!emitter.emit;
 };
+
+if (Config.getConfig() && Config.getConfig().ip_header.length > 0) {
+    newHeaderClaims.unshift(Config.getConfig().ip_header);
+}
+

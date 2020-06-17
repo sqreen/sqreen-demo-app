@@ -169,10 +169,6 @@ const Run = class {
                     filtered_request_params.params = session.params;
                     filtered_request_params.body = session.body;
                     return filtered_request_params;
-                },
-                '#.features': () => {
-
-                    return require('../../command/features').read();
                 }
             };
             if (session.__sqreen_lookup && session.__sqreen_lookup.hapi) {

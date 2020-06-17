@@ -17,14 +17,8 @@ const transportInterface = module.exports = new EcosystemInterface(NAME);
 const FINISHED_TRANSACTIONS = new WeakSet();
 
 transportInterface.utils = {
-    getXFFOrRemoteAddress: function () {
-
-        return require('../util').getXFFOrRemoteAddress.apply(this, arguments);
-    },
-    ensureProperIP: function () {
-
-        return require('../util').ensureProperIP.apply(this, arguments);
-    }
+    getXFFOrRemoteAddress: MainUtils.getXFFOrRemoteAddress,
+    ensureProperIP: MainUtils.ensureProperIP
 };
 
 const ACTIONS = {

@@ -2,6 +2,32 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.44.0]
+### Added
+
+* introduces workspace_depth
+* follow spec for unknonwn sampling primitives
+
+### Changed
+
+* sdk to use a native callback
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* fix time-based sampling primitive
+
+### Security
+
+N/A
+
 ## [1.43.0]
 ### Added
 

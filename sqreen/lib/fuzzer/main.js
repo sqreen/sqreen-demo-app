@@ -204,6 +204,11 @@ module.exports.start = function (rawsessionid) {
 
     return REVEAL_LOCK(() => {
 
+        // $lab:coverage:off$
+        if (!SERVER) {
+            return Promise.reject(new Error('Application server not registred in Reveal!'));
+        }
+        // $lab:coverage:on$
         if (!ready()) {
             return Promise.reject(new Error('Reveal is not ready!'));
         }

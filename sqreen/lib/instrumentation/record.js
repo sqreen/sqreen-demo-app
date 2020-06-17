@@ -126,10 +126,19 @@ const RecordTrace = class extends SqreenSDK.Trace {
         }
         this.actor.user_agent = this.context.request.user_agent;
 
-        if (meta.wafAttack !== null && sanitized.length > 0) {
-            // we must sanitize the WAF attack
-            meta.wafAttack.payload.infos.waf_data = JSON.stringify(ReportUtil.safeFromArray(JSON.parse(meta.wafAttack.payload.infos.waf_data), sanitized, 0));
-            meta.wafAttack = undefined; // attack is already in the points
+        if (sanitized.length > 0) {
+            if (this.context.request.path) {
+                for (let i = 0; i < sanitized.length; ++i) {
+                    const re = new RegExp(sanitized[i], 'g');
+                    this.context.request.path = this.context.request.path.replace(re, ReportUtil.SAFETY);
+                }
+            }
+            this.context.request.path = ReportUtil.safeFromArray(this.context.request.path, sanitized, 0);
+            if (meta.wafAttack !== null) {
+                // we must sanitize the WAF attack
+                meta.wafAttack.payload.infos.waf_data = JSON.stringify(ReportUtil.safeFromArray(JSON.parse(meta.wafAttack.payload.infos.waf_data), sanitized, 0));
+                meta.wafAttack = undefined; // attack is already in the points
+            }
         }
     }
 

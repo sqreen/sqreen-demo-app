@@ -149,6 +149,11 @@ const addSignature = function (bundlePart) {
     return { deps, hash: signature };
 };
 
+const getNMForDir = function (pt) {
+
+    return listModules(Path.join(pt, 'node_modules'))
+        .catch(() => []);
+};
 
 module.exports.getDependencies = function (signature) {
 
@@ -168,19 +173,18 @@ module.exports.getDependencies = function (signature) {
     if (config.use_workspace === true) {
         // We are in a workspace. Let's get upstairs and check if this is a
         // yarn root (i.e. it has a yarn.lock file
-        const upstairs = Path.dirname(baseDir);
+        let dir = baseDir;
+        for (let i = 0; i < config.workspace_depth; ++i) {
+            dir = Path.dirname(dir);
+            res = Promise.all([res, getNMForDir(dir)])
+                .then((result) => {
 
-        const getUpstairs = listModules(Path.join(upstairs, 'node_modules'))
-            .catch(() => []);
-
-        res = Promise.all([res, getUpstairs])
-            .then((result) => {
-
-                const final = result[0];
-                const ups = result[1];
-                final.deps = final.deps.concat(ups);
-                return final;
-            });
+                    const final = result[0];
+                    const ups = result[1];
+                    final.deps = final.deps.concat(ups);
+                    return final;
+                });
+        }
     }
 
 
