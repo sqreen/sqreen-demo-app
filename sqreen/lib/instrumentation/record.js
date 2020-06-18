@@ -107,30 +107,29 @@ const RecordTrace = class extends SqreenSDK.Trace {
         }
         const sanitized = [];
         const request = ReportUtil.mapRequestAndArrayHeaders(req, meta.reportPayload, sanitized);
+        this.context_schema = 'http/2020-01-01T00:00:00.000Z';
+        this.context = {
+            request, response
+        };
+
         // $lab:coverage:off$
         if (Fuzzer.hasFuzzer() && Fuzzer.isRequestReplayed(req)) {
             this.context_schema = 'reveal/2020-06-03T11_11_00_000Z';
-            const reveal = {
+            this.context.reveal = {
                 session_id: Fuzzer.getSessionID(req)
             };
-            this.context = {
-                request, response, reveal
-            };
         }
-        else {
         // $lab:coverage:on$
-            this.context_schema = 'http/2020-01-01T00:00:00.000Z';
-            this.context = {
-                request, response
-            };
-        }
+
         this.actor.user_agent = this.context.request.user_agent;
 
         if (sanitized.length > 0) {
             if (this.context.request.path) {
                 for (let i = 0; i < sanitized.length; ++i) {
-                    const re = new RegExp(sanitized[i], 'g');
-                    this.context.request.path = this.context.request.path.replace(re, ReportUtil.SAFETY);
+                    try {
+                        this.context.request.path = this.context.request.path.split(sanitized[i]).join(ReportUtil.SAFETY);
+                    }
+                    catch (_) {}
                 }
             }
             this.context.request.path = ReportUtil.safeFromArray(this.context.request.path, sanitized, 0);

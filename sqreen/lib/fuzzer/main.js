@@ -89,15 +89,15 @@ const runtimeSchema = Joi.object({
 
 /**
  * @param {object} rawruntime - A Reveal runtime.
- * @returns {Runtime | null} - A (validated) Reveal runtime (or null).
+ * @returns {Runtime} - A (validated) Reveal runtime (or throw an error).
  */
-const validateRuntime = function (rawruntime) {
+const sanitizeRuntime = function (rawruntime) {
 
     const result = Joi.validate(rawruntime, runtimeSchema);
 
     // $lab:coverage:off$
     if (result.error) {
-        return null;
+        throw result.error;
     }
     // $lab:coverage:on$
     return result.value;
@@ -143,12 +143,7 @@ module.exports.reload = function () {
                     // $lab:coverage:on$
                     throw new Error('Reveal backend failed to send a runtime!');
                 }
-                const runtime = validateRuntime(rawruntime);
-                // $lab:coverage:off$
-                if (runtime === null) {
-                    throw new Error('Invalid Reveal runtime payload!');
-                }
-                // $lab:coverage:on$
+                const runtime = sanitizeRuntime(rawruntime);
                 Logger.INFO(`Reloading reveal runtime (version: ${runtime.version})`);
                 return reloadRuntime(runtime);
             }));
@@ -362,11 +357,11 @@ const startFuzzer = function (rawrun) {
             const timeout = !STATE.isTerminating();
             // $lab:coverage:off$
             if (timeout) {
-                Logger.WARN('Forced shutdown after timeout');
+                Logger.WARN('Forced Reveal shutdown after timeout');
             }
             else {
                 // $lab:coverage:on$
-                Logger.WARN('Forced shutdown');
+                Logger.WARN('Forced Reveal shutdown');
             }
             fuzzerDone(timeout);
         }
