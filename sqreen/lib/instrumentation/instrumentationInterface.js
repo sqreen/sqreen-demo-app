@@ -23,7 +23,7 @@ instrumentationInterface.strategies.patchEventListeners = function (holder, even
         holder.addListener = function (event, listener) {
 
             if (eventName === event && typeof listener === 'function') {
-                arguments[1] = getHook(listener);
+                arguments[1] = getHook(this, listener);
             }
             addListener.apply(this, arguments);
         };
