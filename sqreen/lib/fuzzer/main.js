@@ -204,8 +204,10 @@ module.exports.start = function (rawsessionid) {
             return Promise.reject(new Error('Application server not registred in Reveal!'));
         }
         // $lab:coverage:on$
+        //$lab:coverage:off$
         if (!ready()) {
             return Promise.reject(new Error('Reveal is not ready!'));
+            //$lab:coverage:on$
         }
         const sessionid = validateSessionID(rawsessionid);
         // $lab:coverage:off$

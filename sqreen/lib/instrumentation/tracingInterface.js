@@ -4,6 +4,7 @@
  */
 'use strict';
 const NS = require('./hooks/ns').getNS();
+const NSProvider = require('./hooks/ns');
 const Sampling = require('../signals/sampling');
 const EcosystemInterface = require('../ecosystem/ecosystemInterface');
 
@@ -53,3 +54,5 @@ tracingInterface.getTracingIdentifier = tracingInterface.getTracing_identifier =
     }
     return '';
 };
+
+tracingInterface.getAsyncStorage = NSProvider.getNSByName;

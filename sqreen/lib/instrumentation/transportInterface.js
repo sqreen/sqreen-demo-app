@@ -140,7 +140,16 @@ const PropagateInfos = class { // one day, this might save us in debugging times
     }
 };
 
-const FIELDS = module.exports._FIELDS = ['transport', 'ip', 'host', 'tracing_identifier', 'client_ip'];
+const FIELDS = module.exports._FIELDS = [
+    'client_ip',
+    'host',
+    'ip',
+    'message_type',
+    'topic',
+    'tracing_identifier',
+    'transport',
+    'message' // to be updated: spread the redis sub payload
+];
 
 transportInterface.shouldPropagate = function (scope) {
 
@@ -151,12 +160,12 @@ transportInterface.shouldPropagate = function (scope) {
     return new PropagateInfos(FIELDS, trigger);
 };
 
-transportInterface.propagate = function (scope, resolve, trigger) {
+transportInterface.propagate = function (resolve, trigger) {
 
     const session = require('./hooks/util').getNS(); // TODO: recheck
 
-    if (trigger !== null) {
-        const traced = Ecosystem.trace(scope, resolve);
+    if (trigger !== null) { // FIXME: there might be multiple signals! so make this an array
+        const traced = Ecosystem.trace(resolve);
         if (traced) {
             require('../signals/signalInterface')
                 .createPoint(traced.signal_name)
@@ -166,7 +175,7 @@ transportInterface.propagate = function (scope, resolve, trigger) {
         }
     }
     // TODO: other things here (like the BA thingy)
-    const ad = session.get('available_data');
+    const ad = session.get('available_data'); // TODO: make it smarter (multiple same things at once)
     const keys = Object.keys(resolve);
     if (ad !== undefined) {
         Object.assign(ad, resolve);

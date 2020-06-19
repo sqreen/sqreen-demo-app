@@ -70,6 +70,18 @@ const stopCount = function (session) {
     }
 };
 
+instrumentationInterface.strategies.wrap = function (holder, key, moduleIdentity, holderName, pre, post, asyncPost, failing) {
+
+    const original = holder[key].__original || holder[key];
+    let patch = require('./patch').getPatchFromOriginal(original);
+    if (!patch) {
+        patch = instrumentationInterface.strategies.patchFunction(holder, key, moduleIdentity, holderName);
+    }
+
+    patch.addEcosystemCallbacks(pre, post, asyncPost, failing);
+    return patch;
+};
+
 instrumentationInterface.strategies.massWrap = function (module, nameList, pre) { // this looks more and more like callbacks. but is still lighter
 
     // TODO: replace by callback as this mus run befor dynamic cbs eventually

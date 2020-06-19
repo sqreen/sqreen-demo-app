@@ -50,9 +50,11 @@ module.exports.patchFunction = function (holder, key, moduleIdentity, holderName
         return;
     }
 
+    let patch;
     Shimmer.wrap(holder, key, (original) => {
 
-        return (new Patch(original, moduleIdentity, holderName, key)).instrumented;
+        patch = new Patch(original, moduleIdentity, holderName, key);
+        return patch.instrumented;
     });
 
     const __unwrap = holder[key].__unwrap;
@@ -63,6 +65,7 @@ module.exports.patchFunction = function (holder, key, moduleIdentity, holderName
     Object.defineProperty(holder[key], '__original', { enumerable: false, value: __original });
     Object.defineProperty(holder[key], '__wrapped', { enumerable: false, value: __wrapped });
     Object.defineProperty(holder[key], '__sqreenable', { enumerable: false, value: true });
+    return patch;
 };
 
 module.exports._runCbs = Patch._runCbs;

@@ -54,19 +54,26 @@ const shimRun = function (run) {
     };
 };
 
-module.exports.getNS = function () {
+const getNSByName = module.exports.getNSByName = function (name) {
 
-    if (CLS.getNamespace('sqreen_session')) { // TODO: use expressive check here.
-        return CLS.getNamespace('sqreen_session');
+    if (CLS.getNamespace(name)) { // TODO: use expressive check here.
+        return CLS.getNamespace(name);
     }
-    const NS = CLS.createNamespace('sqreen_session');
+    const NS = CLS.createNamespace(name);
 
     // this will override the methods for all instances of NameSpace...
     const prototype = Object.getPrototypeOf(NS);
-    Shimmer.wrap(prototype, 'bind', shimBind);
-    Shimmer.wrap(prototype, 'run', shimRun);
+    if (prototype.bind.__wrapped !== true) {
+        Shimmer.wrap(prototype, 'bind', shimBind);
+        Shimmer.wrap(prototype, 'run', shimRun);
+    }
 
     return NS;
+};
+
+module.exports.getNS = function () {
+
+    return getNSByName('sqreen_session');
 };
 
 module.exports._shimBind = shimBind;

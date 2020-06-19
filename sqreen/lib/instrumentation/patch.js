@@ -525,6 +525,7 @@ const hasNoBudgetMethod = function (arr) {
 };
 
 const ALL_PATCHES = [];
+const ORIGINAL_TO_PATCH = new WeakMap();
 class Patch {
 
     constructor(original, moduleIdentity, holderName, key) {
@@ -538,6 +539,17 @@ class Patch {
         this.failCbs = [];
         this.postCbs = [];
         this.asyncPostCbs = [];
+
+        this.rulePreCbs = [];
+        this.ruleFailCbs = [];
+        this.rulePostCbs = [];
+        this.ruleAsyncPostCbs = [];
+
+        this.ecoPreCbs = [];
+        this.ecoFailCbs = [];
+        this.ecoPostCbs = [];
+        this.ecoAsyncPostCbs = [];
+
         this.hasCbs = false;
 
         this.hasMostNeededCallbacks = false;
@@ -546,6 +558,29 @@ class Patch {
 
         this.build();
         ALL_PATCHES.push(this);
+        ORIGINAL_TO_PATCH.set(original, this);
+    }
+
+    checkCB() {
+
+        this.preCbs = this.ecoPreCbs.concat(this.rulePreCbs);
+        this.postCbs = this.ecoPostCbs.concat(this.rulePostCbs);
+        this.asyncPostCbs = this.ecoAsyncPostCbs.concat(this.ruleAsyncPostCbs);
+        this.failCbs = this.ecoFailCbs.concat(this.ruleFailCbs);
+
+        this.hasAsyncCBs = this.asyncPostCbs.length > 0;
+        this.hasCbs = [this.preCbs, this.postCbs, this.asyncPostCbs, this.failCbs]
+            .some((x) => x.length > 0);
+        this.hasMostNeededCallbacks = hasNoBudgetMethod(this.preCbs) || hasNoBudgetMethod(this.failCbs) || hasNoBudgetMethod(this.postCbs) || hasNoBudgetMethod(this.asyncPostCbs);
+    }
+
+    addEcosystemCallbacks(pre, post, asyncPost, failing) {
+
+        pre && this.ecoPreCbs.push(pre);
+        post && this.ecoPostCbs.push(post);
+        asyncPost && this.ecoAsyncPostCbs.push(asyncPost);
+        failing && this.ecoFailCbs.push(failing);
+        this.checkCB();
     }
 
     register() {
@@ -559,13 +594,12 @@ class Patch {
             updateCallback: function (params) {
 
                 Logger.DEBUG(`updating patch for ${self.moduleIdentity.name}/${self.moduleIdentity.relativePath}.${self.holderName + ':' + self.key}`);
-                self.preCbs = params.preCbs || self.preCbs;
-                self.failCbs = params.failCbs || self.failCbs;
-                self.postCbs = params.postCbs || self.postCbs;
-                self.asyncPostCbs = params.asyncPostCbs || self.asyncPostCbs;
-                self.hasAsyncCBs = self.asyncPostCbs.length > 0;
-                self.hasCbs = self.preCbs.length > 0 || self.failCbs.length > 0 || self.postCbs.length > 0 || self.hasAsyncCBs;
-                self.hasMostNeededCallbacks = hasNoBudgetMethod(self.preCbs) || hasNoBudgetMethod(self.failCbs) || hasNoBudgetMethod(self.postCbs) || hasNoBudgetMethod(self.asyncPostCbs);
+                self.rulePreCbs = params.preCbs || self.rulePreCbs;
+                self.ruleFailCbs = params.failCbs || self.ruleFailCbs;
+                self.rulePostCbs = params.postCbs || self.rulePostCbs;
+                self.ruleAsyncPostCbs = params.asyncPostCbs || self.ruleAsyncPostCbs;
+
+                self.checkCB();
             }
         });
     }
@@ -790,6 +824,12 @@ const logExec = function (cbList, kind) {
 };
 
 module.exports = Patch;
+
+module.exports.getPatchFromOriginal = function (original) {
+
+    return ORIGINAL_TO_PATCH.get(original);
+};
+
 module.exports._performRecordAndObservation = performRecordAndObservation;
 module.exports._observe = observe;
 module.exports._runCbs = runCbs;
@@ -800,11 +840,11 @@ module.exports.removeAllCallbacks = function () {
     Director.clearWaitings();
     for (let i = 0; i < ALL_PATCHES.length; ++i) {
         const patch = ALL_PATCHES[i];
-        patch.hasCbs = false;
-        patch.preCbs = [];
-        patch.failCbs = [];
-        patch.postCbs = [];
-        patch.asyncPostCbs = [];
+        patch.rulePreCbs = [];
+        patch.rufailCbs = [];
+        patch.rulePostCbs = [];
+        patch.ruleAsyncPostCbs = [];
+        patch.checkCB();
     }
 };
 module.exports._logExec = logExec;
