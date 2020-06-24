@@ -2,6 +2,33 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.45.0]
+### Added
+
+* support for Redis in the flowmap
+* reveal is user aware
+* pii scrubbing on path
+
+### Changed
+
+N/A
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* reveal server register fixed
+
+### Security
+
+N/A
+
 ## [1.44.0]
 ### Added
 
