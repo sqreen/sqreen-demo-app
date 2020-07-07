@@ -3,7 +3,7 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
-const NS = require('./hooks/ns').getNS();
+const UUID = require('uuid/v4');
 const NSProvider = require('./hooks/ns');
 const Sampling = require('../signals/sampling');
 const EcosystemInterface = require('../ecosystem/ecosystemInterface');
@@ -47,12 +47,7 @@ tracingInterface.shouldTrace = function (scope) {
 
 tracingInterface.getTracingIdentifier = tracingInterface.getTracing_identifier = function (uuid) {
 
-    const req = NS.get('req'); // Only works for HTTP for now
-    if (req) {
-        return tracingIdentifierPrefix + '.' + (uuid || req.__sqreen_uuid); // TODO: make agnostic someday
-        // Also we will want to add this header to outgoing things but let's wait for this to be cleared out
-    }
-    return '';
+    return tracingIdentifierPrefix + '.' + (uuid || UUID());
 };
 
 tracingInterface.getAsyncStorage = NSProvider.getNSByName;

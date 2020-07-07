@@ -3,7 +3,9 @@
  * Please refer to our terms for more information: https://www.sqreen.io/terms.html
  */
 'use strict';
-const Config = require('../config').getConfig() || { url: require('../config/default').url };
+const Config = require('../config').getConfig() || {
+    url: require('../config/default').url, ingestion_url: require('../config/default').ingestion_url
+};
 
 const V0 = 'v0';
 const V1 = 'v1';
@@ -26,5 +28,7 @@ module.exports = {
     // Reveal
     reveal_runtime: Config.url + '/sqreen/' + V1 + '/reveal/runtime/1',
     reveal_run: Config.url + '/sqreen/' + V1 + '/reveal/run',
-    signal_batch: Config.ingestion_url + '/batches'
+    ping: Config.url + '/ping',
+    signal_batch: Config.ingestion_url + '/batches',
+    signal_ping: Config.ingestion_url + '/ping'
 };

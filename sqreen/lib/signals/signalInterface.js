@@ -26,7 +26,6 @@ const signalInterface = module.exports = new EcosystemInterface(NAME);
 
 const PointBuilder = class {
 
-    // FIXME: this should go to the current trace if it exists!!!
     constructor(name) {
 
         const req = getNS().get('req');

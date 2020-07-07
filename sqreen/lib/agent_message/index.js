@@ -47,7 +47,9 @@ const AgentMessage = class {
 AgentMessage.KIND = {
     first_require: 'first_require',
     agent_required_twice: 'agent_required_twice',
-    no_sq_native: 'no_sq-native'
+    no_sq_native: 'no_sq-native',
+    back_sqreen_com_unavailable: 'back_sqreen_com_unavailable',
+    ingestion_sqreen_com_unavailable: 'ingestion_sqreen_com_unavailable'
 };
 
 module.exports = AgentMessage;

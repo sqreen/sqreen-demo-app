@@ -8,7 +8,7 @@ const Https = require('https');
 const Url = require('url');
 
 const Wreck = require('../../vendor/wreck/lib/index').defaults({
-    timeout: 60000,
+    timeout: 30000,
     json: true
 });
 

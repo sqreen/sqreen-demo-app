@@ -120,12 +120,32 @@ const getGetOptions = function (uri, headers, query) {
     };
 };
 
+const ping = function (url) {
+
+    return WAP.GET(url, {}) // 1 retry and that's it
+        .catch(() => WAP.GET(url, {}));
+};
+const pingBacks = module.exports.pingBacks = function () {
+
+    ping(Routes.ping)
+        .catch(() => {
+
+            require('../agent_message/builder').backPingFailed(Routes.ping);
+        });
+
+    ping(Routes.signal_ping)
+        .catch(() => {
+
+            require('../agent_message/builder').ingestionPingFailed(Routes.signal_ping);
+        });
+};
 /**
  * Process login
  * @param apiKey
  */
 module.exports.login = function (apiKey, appName) {
 
+    pingBacks();
     const login = function () {
 
         return Login.getPayload()

@@ -2,6 +2,33 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.46.0]
+### Added
+
+* update libSqreen to 0.6.1
+* handle backend discovery
+
+### Changed
+
+* update blocking page
+
+### Deprecated
+
+N/A
+
+### Removed
+
+N/A
+
+### Fixed
+
+* update user agent handling in reveal
+* temporary tail call signal creation fix
+
+### Security
+
+N/A
+
 ## [1.45.0]
 ### Added
 

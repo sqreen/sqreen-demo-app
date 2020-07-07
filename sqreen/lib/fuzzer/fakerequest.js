@@ -73,7 +73,7 @@ class FakeMessage extends HTTP.IncomingMessage {
         /** @type {string} */
         this.url            = options.path || Default.path;
         this.auth           = options.auth;
-        this.agent          = options.agent || (protocol === 'https:' ? HTTPS.globalAgent : HTTP.globalAgent);
+        this.agent          = options.agent || Default.agent || (protocol === 'https:' ? HTTPS.globalAgent : HTTP.globalAgent);
         this.cert           = options.cert;
         this.key            = options.key;
         this.httpVersion    = options.version || Default.version;
@@ -99,8 +99,8 @@ class FakeMessage extends HTTP.IncomingMessage {
         //$lab:coverage:on$
         // Those are mandatory for Sqreen reporting
         //$lab:coverage:off$
-        this.headers['user-agent'] = this.headers['user-agent'] || Default.agent;
-        this.headers.host = this.headers.host || Default.host;
+        this.headers['user-agent'] = this.headers['user-agent'] || this.agent;
+        this.headers.host = this.headers.host || this.host;
         this.headers.referer = this.headers.referer || 'https://reveal.sqreen.com';
         //$lab:coverage:on$
     }
