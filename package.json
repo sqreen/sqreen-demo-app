@@ -27,7 +27,7 @@
     "register-service-worker": "^1.0.0",
     "request": "^2.88.0",
     "sqlite3": "^4.1.0",
-    "sqreen": "file:./sqreen",
+    "sqreen": "*",
     "vue": "^2.5.17",
     "vue-router": "^3.0.1",
     "vue-spinner": "^1.0.3",
