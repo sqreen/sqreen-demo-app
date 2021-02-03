@@ -7,8 +7,8 @@
     <div class="img" :style="{backgroundImage: 'url('+picture+')'}"></div>
     <div class="right">
       <span class="title">{{postTitle}}</span>
-      <span class="price">${{price}}</span>
-      <p>Morbi leo risus, porta ac consectetur ac, vestibulum at eros. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit. </p>
+      <span class="price">${{priceUSD}} - €{{price}}</span>
+      <p>{{postContent}}</p>
       <div class="inline">
         <img src="https://sqreen-assets.s3-eu-west-1.amazonaws.com/test-app/group-2.svg" alt="">
         <a href="">Add to cart</a>
@@ -19,7 +19,7 @@
     <div class="img" :style="{backgroundImage: 'url('+picture+')'}"></div>
     <div>
       <span class="title">{{postTitle}}</span>
-      <span class="price">${{price}}</span>
+      <span class="price">€{{price}}</span>
       <router-link :to="`post/${postId}`" append>Shop now</router-link>
     </div>
   </div>
@@ -255,6 +255,9 @@ export default {
     },
     price: function() {
       return this.post.price || this.post.PRICE;
+    },
+    priceUSD: function() {
+      return this.post.priceUSD || this.post.PRICE_USD;
     },
     postTitle: function() {
       return this.post.title || this.post.TITLE;

@@ -9,6 +9,41 @@ var path = require("path");
 //Initiate our app
 const app = express();
 const jwt = require("jsonwebtoken");
+const request = require('request');
+
+const getPriceUSD = function (price, callback) {
+
+    request(`https://api.exchangeratesapi.io/latest`, (err, res) => {
+        if (err) return callback(err);
+        try {
+            const prices = JSON.parse(res.body).rates;
+            const USD = prices.USD;
+            return callback(null, USD * price);
+        }
+        catch (e) {
+            return callback(e);
+        }
+    });
+};
+
+const doReq = function (url) {
+    return new Promise((resolve) => {
+        return request(url, () => {
+            return resolve();
+        });
+    });
+};
+
+const otherCalls = function (callback) {
+    return Promise.all([
+        doReq('https://api.segment.io/v1/identify'),
+        doReq('https://query-suggestions.eu.algolia.com/'),
+        doReq('https://samples.openweathermap.org/data/2.5/weather?q=London,uk'),
+        doReq('https://api.coindesk.com/v1/bpi/currentprice.json'),
+    ])
+        .then(() => callback())
+        .catch(() => callback());
+};
 
 //Configure our app
 app.use(morgan("combined"));
@@ -23,27 +58,32 @@ app.use(bodyParser.json());
 app.use(passport.initialize());
 app.use(express.static(path.resolve(__dirname, "../dist")));
 
-app.get("/api/posts", optionalJWTAuth, (req, res) => {
-  const limit =
-    req.query.limit >= 0 && req.query.limit <= 50 ? req.query.limit : 50;
+app.get("/api/posts", optionalJWTAuth, (req, res, next) => {
+  const limit = req.query.limit >= 0 && req.query.limit <= 50 ? req.query.limit : 50;
   const skip = req.query.skip >= 0 && req.query.skip <= 20 ? req.query.skip : 0;
-  db.all(`SELECT * FROM POSTS LIMIT ${limit} OFFSET ${skip};`, function(
-    err,
-    row
-  ) {
-    res.send(row);
+  db.all(`SELECT * FROM POSTS LIMIT ${limit} OFFSET ${skip};`, (err, rows) => {
+    if (err) return next(err);
+    return res.send(rows);
   });
 });
 
-app.get("/api/posts/:id", optionalJWTAuth, (req, res) => {
-  db.all(`SELECT * FROM POSTS WHERE ID = ${req.params.id};`, function(
-    err,
-    row
-  ) {
-    sqreen.track("get-single-article", {
-      properties: { articleId: req.params.id }
+app.get("/api/posts/:id", optionalJWTAuth, (req, res, next) => {
+  db.all(`SELECT * FROM POSTS WHERE ID = ${req.params.id};`, (err, rows) => {
+    if (err) return next(err);
+    if (rows.length === 0) {
+        res.status(404);
+        return next(new Error(`Post ${req.params.id} not found`));
+    }
+    sqreen.track('get-single-article', { properties: { articleId: rows[0].ID } });
+    const product = rows[0];
+    const price = Number(product.PRICE);
+      getPriceUSD(price, (e, usd) => {
+        if (e) return next(e);
+        product.PRICE_USD = usd.toFixed(2);
+        otherCalls(() => {
+          return res.send(rows);
+        });
     });
-    res.send(row);
   });
 });
 
@@ -77,6 +117,12 @@ app.get(
 
 app.get(["/", "/post/*", "/login"], function(request, response) {
   response.sendFile(path.resolve(__dirname, "../dist/index.html"));
+});
+
+app.use((err, req, res, next) => {
+
+    console.log(err);
+    res.end(err.message);
 });
 
 app.listen(process.env.PORT || 8000, () =>
